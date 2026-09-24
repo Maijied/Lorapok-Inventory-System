@@ -8,13 +8,13 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /*
 |--------------------------------------------------------------------------
-| Tenant Routes
+| Tenant routes
 |--------------------------------------------------------------------------
 |
-| Here you can register the tenant routes for your application.
-| These routes are loaded by the TenantRouteServiceProvider.
+| A single shop, served from its own subdomain against its own database.
 |
-| Feel free to customize them however you want. Good luck!
+| Everything here runs behind InitializeTenancyByDomain, so `tenant()` is
+| always populated and every query targets that shop's database.
 |
 */
 
@@ -23,7 +23,14 @@ Route::middleware([
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])->group(function () {
-    Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is '.tenant('id');
+
+    // Route::livewire() resolves a Livewire single-file component by name;
+    // the ⚡ prefix in the filename is not part of the component name.
+    Route::livewire('/login', 'tenant.auth.login')
+        ->middleware('guest:tenant')
+        ->name('tenant.login');
+
+    Route::middleware('auth:tenant')->group(function () {
+        Route::livewire('/', 'tenant.dashboard')->name('tenant.dashboard');
     });
 });

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Tenant\User as TenantUser;
 use App\Models\User;
 
 return [
@@ -38,9 +39,18 @@ return [
     */
 
     'guards' => [
+        // Lorapok super admins, on the central domain.
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        // Shop staff, on a tenant subdomain. A separate guard means a shop
+        // session can never authenticate against the central app, and vice
+        // versa, even though both tables are called `users`.
+        'tenant' => [
+            'driver' => 'session',
+            'provider' => 'tenant_users',
         ],
     ],
 
@@ -65,6 +75,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'tenant_users' => [
+            'driver' => 'eloquent',
+            'model' => TenantUser::class,
         ],
 
         // 'users' => [
