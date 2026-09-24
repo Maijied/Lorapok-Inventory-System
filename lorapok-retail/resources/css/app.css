@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import './animations.css';
+
+/* Tailwind v4 does not reliably discover class strings in Blade templates or in
+ * PHP (Livewire components build class lists server-side). Without these the
+ * build silently drops utilities — styles work in dev and vanish in prod.
+ * If you add a directory that emits class names, add it here. */
+@source '../views/**/*.blade.php';
+@source '../../app/Livewire/**/*.php';
+@source '../../app/View/**/*.php';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Bridge the Lorapok tokens into Tailwind's utility generator.
+ * `inline` keeps the values as CSS custom properties at runtime, which is what
+ * makes per-tenant accent overrides possible without rebuilding CSS. */
+@theme inline {
+    --color-base: var(--color-bg-base);
+    --color-elevated: var(--color-bg-elevated);
+    --color-surface: var(--color-bg-surface);
+    --color-surface-hover: var(--color-bg-surface-hover);
+    --color-border: var(--color-border);
+    --color-text: var(--color-text);
+    --color-muted: var(--color-muted);
+    --color-accent: var(--color-accent);
+    --color-accent-2: var(--color-accent-2);
+    --color-neon: var(--color-neon);
+    --color-ok: var(--color-ok);
+    --color-warn: var(--color-warn);
+    --color-danger: var(--color-danger);
+
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+
+    --radius-card: var(--radius);
+    --radius-panel: var(--radius-lg);
+}
+
+@layer base {
+    html {
+        color-scheme: dark;
+    }
+
+    html[data-theme='light'] {
+        color-scheme: light;
+    }
+
+    body {
+        background-color: var(--color-bg-base);
+        color: var(--color-text);
+        font-family: var(--font-sans);
+    }
+
+    /* Never remove the focus ring without replacing it. */
+    :focus-visible {
+        outline: var(--focus-ring);
+        outline-offset: 2px;
+    }
+
+    /* Live counts and money must not jitter as digits change. */
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/* The canonical Mission Control surface. */
+@utility glass-panel {
+    background-color: color-mix(in srgb, var(--color-bg-surface) 94%, var(--color-bg-base));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+}
+
+/* Fixed decorative backdrop: violet top-right, blue bottom-left, over base. */
+@utility app-shell-bg {
+    background-color: var(--color-bg-base);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 85% 0%, rgba(124, 92, 255, 0.12), transparent 60%),
+        radial-gradient(ellipse 70% 60% at 10% 100%, rgba(77, 159, 255, 0.08), transparent 60%);
+}
+
+/* Visible only once focused — first stop in the tab order. */
+@utility skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-elevated);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+
+    &:focus {
+        left: 1rem;
+        top: 1rem;
+    }
+}
