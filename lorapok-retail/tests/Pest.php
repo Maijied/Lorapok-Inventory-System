@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use App\Models\Tenant\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
 
 /*
@@ -24,6 +26,22 @@ uses(TestCase::class)->in('Unit');
 | Helpers
 |--------------------------------------------------------------------------
 */
+
+/**
+ * Sign in as a shop user for the duration of a test.
+ *
+ * Auth::guard('tenant')->login() alone is not enough: Gate resolves the user
+ * from the DEFAULT guard, so every authorisation check would see a guest and
+ * every page would render 403. In a real request the `auth:tenant` middleware
+ * calls shouldUse() for us; tests have to do it explicitly.
+ */
+function actingAsTenantUser(User $user): User
+{
+    Auth::guard('tenant')->login($user);
+    Auth::shouldUse('tenant');
+
+    return $user;
+}
 
 /**
  * Run a closure inside a tenant's context and always return to central,
