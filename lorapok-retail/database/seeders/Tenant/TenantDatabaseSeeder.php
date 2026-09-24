@@ -7,6 +7,7 @@ namespace Database\Seeders\Tenant;
 use App\Enums\Permission as P;
 use App\Enums\Role as RoleEnum;
 use App\Models\Tenant\Category;
+use App\Models\Tenant\Location;
 use App\Models\Tenant\Setting;
 use App\Models\Tenant\TaxRate;
 use App\Models\Tenant\Unit;
@@ -67,6 +68,13 @@ class TenantDatabaseSeeder extends Seeder
         TaxRate::firstOrCreate(
             ['name' => 'No tax'],
             ['rate_bps' => 0, 'is_inclusive' => false, 'is_active' => true],
+        );
+
+        // Every shop has at least one place stock can live. Multi-location
+        // shops add warehouses later; the ledger is already keyed by location.
+        Location::firstOrCreate(
+            ['code' => 'main'],
+            ['name' => 'Main Shop', 'type' => 'shop', 'is_default' => true, 'is_active' => true],
         );
 
         foreach ([

@@ -17,6 +17,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Present from day one even though v1's UI exposes a single default variant
  * per product: retrofitting variants onto a product-only schema later means
  * rewriting every stock and sales query.
+ *
+ * Relation and cast types, which PHPStan cannot infer from the schema.
+ *
+ * @property ?Product $product
+ * @property int $cost_minor
+ * @property int $price_minor
+ * @property bool $is_active
  */
 #[Fillable(['product_id', 'sku', 'name', 'attributes', 'cost_minor', 'price_minor', 'is_active'])]
 class ProductVariant extends Model
