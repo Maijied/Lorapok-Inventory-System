@@ -110,16 +110,21 @@ it('scopes tenant users separately from central users', function () {
 });
 
 it('resolves the correct tenant from its subdomain', function () {
-    $a = makeTenant('alpha');
-    $b = makeTenant('bravo');
+    makeTenant('alpha');
+    makeTenant('bravo');
 
-    $this->get('http://alpha.lorapok.localhost/')
+    // The shop's own name on its own login page is the observable proof that
+    // the subdomain resolved to the right tenant. (The root path now requires
+    // authentication, so it redirects rather than rendering.)
+    $this->get('http://alpha.lorapok.localhost/login')
         ->assertOk()
-        ->assertSee($a->id, escape: false);
+        ->assertSee('Alpha Shop')
+        ->assertDontSee('Bravo Shop');
 
-    $this->get('http://bravo.lorapok.localhost/')
+    $this->get('http://bravo.lorapok.localhost/login')
         ->assertOk()
-        ->assertSee($b->id, escape: false);
+        ->assertSee('Bravo Shop')
+        ->assertDontSee('Alpha Shop');
 });
 
 it('blocks tenant routes on the central domain', function () {

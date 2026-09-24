@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use Database\Seeders\Tenant\TenantDatabaseSeeder;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
@@ -147,7 +148,18 @@ return [
          * disable asset() helper tenancy and explicitly use tenant_asset() calls in places
          * where you want to use tenant-specific assets (product images, avatars, etc).
          */
-        'asset_helper_tenancy' => true,
+        /*
+         * When true, stancl rewrites EVERY asset() call through the
+         * tenancy/assets/ route, which serves from the tenant's storage disk.
+         * That breaks Vite: the compiled CSS/JS live in public/build, are
+         * identical for every shop, and 404 through that route - the app
+         * renders with no styling at all.
+         *
+         * Shared build output therefore uses the normal asset() path, and
+         * genuinely per-shop files (logos, product images) use the explicit
+         * tenant_asset() helper, which keeps them scoped.
+         */
+        'asset_helper_tenancy' => false,
     ],
 
     /**
@@ -205,7 +217,7 @@ return [
      * Parameters used by the tenants:seed command.
      */
     'seeder_parameters' => [
-        '--class' => 'DatabaseSeeder', // root seeder class
+        '--class' => TenantDatabaseSeeder::class,
         // '--force' => true, // This needs to be true to seed tenant databases in production
     ],
 ];
