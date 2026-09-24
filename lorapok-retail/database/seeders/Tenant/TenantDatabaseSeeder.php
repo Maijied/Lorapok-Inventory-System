@@ -6,8 +6,12 @@ namespace Database\Seeders\Tenant;
 
 use App\Enums\Permission as P;
 use App\Enums\Role as RoleEnum;
+use App\Models\Tenant\Category;
 use App\Models\Tenant\Setting;
+use App\Models\Tenant\TaxRate;
+use App\Models\Tenant\Unit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -39,6 +43,42 @@ class TenantDatabaseSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->seedSettings();
+        $this->seedCatalogDefaults();
+    }
+
+    /**
+     * Baseline catalogue rows so a new shop can add a product immediately.
+     *
+     * The old system had a categories table with no UI and no seed data at
+     * all, so the dashboard rendered blank cards for thirteen hard-coded
+     * category names that existed only in a Blade template.
+     */
+    private function seedCatalogDefaults(): void
+    {
+        foreach ([
+            ['name' => 'Piece', 'code' => 'pc', 'precision' => 0],
+            ['name' => 'Pack', 'code' => 'pack', 'precision' => 0],
+            ['name' => 'Metre', 'code' => 'm', 'precision' => 2],
+        ] as $unit) {
+            Unit::firstOrCreate(['code' => $unit['code']], $unit);
+        }
+
+        // Zero-rated by default; a shop opts into real rates in Settings.
+        TaxRate::firstOrCreate(
+            ['name' => 'No tax'],
+            ['rate_bps' => 0, 'is_inclusive' => false, 'is_active' => true],
+        );
+
+        foreach ([
+            'Mobile Phone', 'Headphones & Speakers', 'Chargers & Adapters',
+            'Cables', 'Earbuds', 'Phone Cases', 'Memory Cards',
+            'Power Banks', 'Smart Watches', 'Accessories',
+        ] as $name) {
+            Category::firstOrCreate(
+                ['slug' => Str::slug($name)],
+                ['name' => $name, 'is_active' => true],
+            );
+        }
     }
 
     /**

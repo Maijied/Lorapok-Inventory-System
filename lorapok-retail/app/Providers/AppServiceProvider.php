@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Http\Middleware\InitializeTenancyIfTenantDomain;
+use App\Models\Tenant\Product;
+use App\Policies\ProductPolicy;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -19,6 +22,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerTenantAwareLivewireRoute();
+        $this->registerPolicies();
+    }
+
+    /**
+     * Registered explicitly: policy auto-discovery expects
+     * App\Policies\Tenant\ProductPolicy for App\Models\Tenant\Product, and
+     * silently falls back to "denied" when it does not find one.
+     */
+    private function registerPolicies(): void
+    {
+        Gate::policy(Product::class, ProductPolicy::class);
     }
 
     /**
