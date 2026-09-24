@@ -1,0 +1,18 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Application code only. Pest tests use dynamic $this/test() inside
+    # closures, which PHPStan cannot resolve without the Pest extension —
+    # it reports false positives there rather than real defects. Test
+    # correctness is covered by the suite itself.
+    paths:
+        - app
+        - database
+        - routes
+
+    # Start at 5 and raise over time rather than blanket-ignoring findings.
+    level: 5
+
+    excludePaths:
+        - vendor

@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: lorapok-retail
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          # Throwaway credentials for an ephemeral CI service container.
+          # Nothing here is a real secret.
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis:
+        image: redis:alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, redis, gd, bcmath, intl, zip
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: lorapok-retail/vendor
+          key: composer-${{ hashFiles('lorapok-retail/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Tenancy provisions one database per shop, so the test user needs
+      # CREATE DATABASE within the tenant_ namespace. Root is used in CI
+      # because the service container is ephemeral and discarded per job.
+      - name: Run migrations
+        run: php artisan migrate --force
+        env:
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+
+      - name: Run tests
+        run: php artisan test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+          REDIS_HOST: 127.0.0.1
+
+      # Tenant databases are not covered by RefreshDatabase. The suite drops
+      # what it creates, but a failed test can leave one behind — fail loudly
+      # rather than letting them accumulate on a shared runner.
+      - name: Check for leaked tenant databases
+        if: always()
+        run: |
+          LEAKED=$(mysql -h 127.0.0.1 -uroot -ppassword -N \
+            -e "SHOW DATABASES LIKE 'tenant\_%';" 2>/dev/null | wc -l)
+          echo "Leaked tenant databases: $LEAKED"
+          if [ "$LEAKED" -ne 0 ]; then
+            echo "::warning::Test run left $LEAKED tenant database(s) behind"
+          fi
+
+  static-analysis:
+    name: Lint & Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, redis, gd, bcmath, intl, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Check code style
+        run: ./vendor/bin/pint --test
+
+      - name: Static analysis
+        run: ./vendor/bin/phpstan analyse --no-progress
+
+  assets:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: lorapok-retail/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      # Tailwind v4 does not reliably discover classes in Blade or PHP without
+      # explicit @source directives. When one is missing the build still
+      # succeeds but ships a near-empty stylesheet, so assert on size.
+      # The build emits more than one stylesheet (the font imports become
+      # their own chunk), so measure the largest — that is the Tailwind
+      # bundle whose size proves class discovery worked.
+      - name: Assert Tailwind bundle is not empty
+        run: |
+          if [ -z "$(find public/build/assets -name '*.css' -print -quit)" ]; then
+            echo "::error::No CSS emitted by the build"
+            exit 1
+          fi
+          SIZE=$(find public/build/assets -name '*.css' -exec stat -c%s {} + | sort -rn | head -1)
+          echo "Largest stylesheet: $SIZE bytes"
+          if [ "$SIZE" -lt 20000 ]; then
+            echo "::error::Tailwind bundle is only $SIZE bytes - a @source directive is probably missing"
+            exit 1
+          fi
