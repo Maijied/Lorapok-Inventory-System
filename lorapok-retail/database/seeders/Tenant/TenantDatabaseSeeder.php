@@ -8,6 +8,7 @@ use App\Enums\Permission as P;
 use App\Enums\Role as RoleEnum;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Location;
+use App\Models\Tenant\PaymentMethod;
 use App\Models\Tenant\Setting;
 use App\Models\Tenant\TaxRate;
 use App\Models\Tenant\Unit;
@@ -69,6 +70,20 @@ class TenantDatabaseSeeder extends Seeder
             ['name' => 'No tax'],
             ['rate_bps' => 0, 'is_inclusive' => false, 'is_active' => true],
         );
+
+        // Bangladesh retail reality: cash at the counter, mobile money, then
+        // cards and bank transfer. "On account" records that nothing changed
+        // hands and the balance is carried.
+        foreach ([
+            ['name' => 'Cash', 'type' => 'cash', 'sort_order' => 1],
+            ['name' => 'bKash', 'type' => 'mobile', 'sort_order' => 2],
+            ['name' => 'Nagad', 'type' => 'mobile', 'sort_order' => 3],
+            ['name' => 'Card', 'type' => 'card', 'sort_order' => 4],
+            ['name' => 'Bank transfer', 'type' => 'bank', 'sort_order' => 5],
+            ['name' => 'On account', 'type' => 'credit', 'sort_order' => 6],
+        ] as $method) {
+            PaymentMethod::firstOrCreate(['name' => $method['name']], $method + ['is_active' => true]);
+        }
 
         // Every shop has at least one place stock can live. Multi-location
         // shops add warehouses later; the ledger is already keyed by location.
