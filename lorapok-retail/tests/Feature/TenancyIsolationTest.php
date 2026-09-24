@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,7 +29,7 @@ afterEach(function () {
     $this->createdTenants->each(function (Tenant $tenant) {
         try {
             $tenant->database()->manager()->deleteDatabase($tenant);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Already gone; nothing to clean up.
         }
         Tenant::withoutEvents(fn () => $tenant->delete());
@@ -88,7 +89,7 @@ it('keeps tenant tables out of the central database', function () {
     // The central connection has no operational tables at all — a forgotten
     // scope cannot silently fall back to a shared products table.
     expect(fn () => DB::connection('mysql')->table('products')->count())
-        ->toThrow(Illuminate\Database\QueryException::class);
+        ->toThrow(QueryException::class);
 });
 
 it('scopes tenant users separately from central users', function () {
