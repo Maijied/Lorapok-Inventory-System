@@ -128,6 +128,8 @@ class TenantDatabaseSeeder extends Seeder
             'invoice.prefix' => ['value' => 'INV', 'group' => 'invoice'],
             'invoice.footer' => ['value' => '', 'group' => 'invoice'],
             'invoice.terms' => ['value' => '', 'group' => 'invoice'],
+            // Bangladeshi retail does not settle in paisa.
+            'invoice.round_to_whole' => ['value' => true, 'group' => 'invoice'],
 
             // Per-product warranty overrides this.
             'warranty.default_days' => ['value' => 0, 'group' => 'warranty'],
