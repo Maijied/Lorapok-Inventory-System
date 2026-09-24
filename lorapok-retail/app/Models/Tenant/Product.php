@@ -25,6 +25,7 @@ use League\CommonMark\CommonMarkConverter;
  * @property bool $is_active
  * @property ?int $warranty_days
  * @property ?string $description
+ * @property ?TaxRate $taxRate
  */
 #[Fillable([
     'sku', 'name', 'slug', 'description', 'category_id', 'brand_id',
