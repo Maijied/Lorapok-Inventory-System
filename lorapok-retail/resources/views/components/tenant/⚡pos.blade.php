@@ -396,6 +396,18 @@ class extends Component
             >
             @error('scan') <p class="mt-1.5 text-sm text-[var(--color-danger)]">{{ $message }}</p> @enderror
 
+            {{-- A USB scanner types into the box above and needs no
+                 JavaScript. The camera is for a tablet, or for when the gun
+                 breaks. --}}
+            <div class="mt-2">
+                <button type="button" data-scan-button data-scan-target="#scan"
+                        class="text-xs text-[var(--color-muted)] underline hover:text-[var(--color-text)]">
+                    Use camera instead
+                </button>
+                <video data-scan-video hidden playsinline
+                       class="mt-2 w-full max-w-xs rounded-[var(--radius)] border border-[var(--color-border)]"></video>
+            </div>
+
             @if ($this->suggestions->isNotEmpty())
                 <div class="mt-2 flex flex-wrap gap-2">
                     @foreach ($this->suggestions as $product)
@@ -513,6 +525,7 @@ class extends Component
             @error('cart') <p class="mt-3 text-sm text-[var(--color-danger)]">{{ $message }}</p> @enderror
 
             <button wire:click="checkout" wire:loading.attr="disabled" type="button"
+                    data-requires-online
                     @disabled($cart === [])
                     class="mt-4 w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-40">
                 <span wire:loading.remove wire:target="checkout">Complete sale</span>

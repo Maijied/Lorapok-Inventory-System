@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Tenant\IconController;
+use App\Http\Controllers\Tenant\ManifestController;
 use App\Http\Middleware\BlockSuspendedShops;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -25,6 +27,14 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
     BlockSuspendedShops::class,
 ])->group(function () {
+
+    // The manifest and icon are public: a browser fetches the manifest
+    // before anyone signs in, and an installed app needs its icon on the
+    // home screen whether or not there is a session.
+    Route::get('/manifest.webmanifest', ManifestController::class)->name('tenant.manifest');
+    Route::get('/icon-{size}.svg', IconController::class)
+        ->whereNumber('size')
+        ->name('tenant.icon');
 
     // Route::livewire() resolves a Livewire single-file component by name;
     // the ⚡ prefix in the filename is not part of the component name.
