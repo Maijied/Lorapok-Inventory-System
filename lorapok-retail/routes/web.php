@@ -20,7 +20,15 @@ use Illuminate\Support\Facades\Route;
 foreach (config('tenancy.central_domains') as $domain) {
     Route::domain($domain)->group(function () {
         Route::get('/', function () {
-            return view('welcome');
+            return redirect()->route('central.shops');
         })->name('home');
+
+        Route::livewire('/admin/login', 'central.auth.login')
+            ->middleware('guest:web')
+            ->name('central.login');
+
+        Route::middleware('auth:web')->group(function () {
+            Route::livewire('/admin/shops', 'central.shops')->name('central.shops');
+        });
     });
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Support\Carbon;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -14,6 +15,16 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
  *
  * Each tenant owns a separate MySQL database (`tenant_<id>`), so one shop can
  * never read another's rows even if a query forgets to scope itself.
+ *
+ * Cast types, which PHPStan cannot infer from stancl's `data` json column.
+ *
+ * @property string $name
+ * @property string $slug
+ * @property string $status
+ * @property string $accent
+ * @property string $theme
+ * @property ?Carbon $trial_ends_at
+ * @property ?Carbon $suspended_at
  */
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
