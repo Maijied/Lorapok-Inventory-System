@@ -34,6 +34,7 @@ Route::middleware([
         Route::livewire('/', 'tenant.dashboard')->name('tenant.dashboard');
 
         Route::livewire('/pos', 'tenant.pos')->name('tenant.pos');
+        Route::livewire('/reports', 'tenant.reports')->name('tenant.reports');
 
         Route::livewire('/products', 'tenant.catalog.products')->name('tenant.products');
         Route::livewire('/products/create', 'tenant.catalog.product-form')->name('tenant.products.create');
