@@ -9,7 +9,7 @@ export default defineConfig({
             refresh: true,
             // Fonts are self-hosted via @fontsource (imported in app.js) rather
             // than fetched from a font CDN. A shop POS has to work on a flaky
-            // connection, and the service worker needs to precache them.
+            // connection, and the service worker precaches them.
         }),
         tailwindcss(),
     ],
