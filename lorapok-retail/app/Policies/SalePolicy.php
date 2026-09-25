@@ -44,4 +44,14 @@ class SalePolicy
     {
         return $user->can(Permission::TAKE_PAYMENTS);
     }
+
+    /**
+     * Reports are readable by anyone with view_reports; cost and margin are
+     * gated separately by view_margin, because they are commercially
+     * sensitive in a way that a day's takings is not.
+     */
+    public function viewReports(User $user): bool
+    {
+        return $user->can(Permission::VIEW_REPORTS);
+    }
 }
