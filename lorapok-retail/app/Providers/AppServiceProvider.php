@@ -6,7 +6,9 @@ namespace App\Providers;
 
 use App\Http\Middleware\InitializeTenancyIfTenantDomain;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\Sale;
 use App\Policies\ProductPolicy;
+use App\Policies\SalePolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerPolicies(): void
     {
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Sale::class, SalePolicy::class);
     }
 
     /**

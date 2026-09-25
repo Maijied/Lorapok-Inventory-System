@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * full, in cash, immediately.
  *
  * @property int $amount_minor
+ * @property ?PaymentMethod $method
  */
 #[Fillable([
     'payable_type', 'payable_id', 'payment_method_id', 'amount_minor',

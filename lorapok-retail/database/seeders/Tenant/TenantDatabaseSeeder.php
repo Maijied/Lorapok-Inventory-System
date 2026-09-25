@@ -6,6 +6,7 @@ namespace Database\Seeders\Tenant;
 
 use App\Enums\Permission as P;
 use App\Enums\Role as RoleEnum;
+use App\Models\Tenant\CashRegister;
 use App\Models\Tenant\Category;
 use App\Models\Tenant\Location;
 use App\Models\Tenant\PaymentMethod;
@@ -87,9 +88,15 @@ class TenantDatabaseSeeder extends Seeder
 
         // Every shop has at least one place stock can live. Multi-location
         // shops add warehouses later; the ledger is already keyed by location.
-        Location::firstOrCreate(
+        $location = Location::firstOrCreate(
             ['code' => 'main'],
             ['name' => 'Main Shop', 'type' => 'shop', 'is_default' => true, 'is_active' => true],
+        );
+
+        // ...and one till, so a cashier can open a shift on day one.
+        CashRegister::firstOrCreate(
+            ['location_id' => $location->id, 'name' => 'Counter 1'],
+            ['is_active' => true],
         );
 
         foreach ([
