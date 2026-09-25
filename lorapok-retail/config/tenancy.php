@@ -25,6 +25,14 @@ return [
      *
      * Only relevant if you're using the domain or subdomain identification middleware.
      */
+    /**
+     * The domain shops are served under: <slug>.<root_domain>.
+     *
+     * Read through config rather than env() at the call site, because env()
+     * returns null once the config is cached in production.
+     */
+    'root_domain' => env('LORAPOK_ROOT_DOMAIN', 'lorapok.localhost'),
+
     'central_domains' => array_filter([
         env('LORAPOK_ROOT_DOMAIN', 'lorapok.localhost'),
         '127.0.0.1',

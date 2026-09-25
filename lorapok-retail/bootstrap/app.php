@@ -14,8 +14,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Tenant routes live on subdomains, so an unauthenticated visitor must
         // be sent to that shop's own login page rather than the central app's.
-        $middleware->redirectGuestsTo(fn () => route('tenant.login'));
-        $middleware->redirectUsersTo(fn () => route('tenant.dashboard'));
+        // Central and tenant apps have separate sign-in pages; the host
+        // decides which one an unauthenticated visitor is sent to.
+        $middleware->redirectGuestsTo(function ($request) {
+            $central = in_array($request->getHost(), config('tenancy.central_domains', []), true);
+
+            return $central ? route('central.login') : route('tenant.login');
+        });
+        $middleware->redirectUsersTo(function ($request) {
+            $central = in_array($request->getHost(), config('tenancy.central_domains', []), true);
+
+            return $central ? route('central.shops') : route('tenant.dashboard');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

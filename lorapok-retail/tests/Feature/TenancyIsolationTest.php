@@ -133,8 +133,11 @@ it('blocks tenant routes on the central domain', function () {
     // PreventAccessFromCentralDomains must reject tenant routes served from the
     // central host, otherwise tenancy is never initialised and queries would
     // hit the central database.
+    // The central root is the operator panel, so it redirects rather than
+    // rendering — what matters is that the TENANT route did not match and
+    // tenancy was never initialised.
     $this->get('http://lorapok.localhost/')
-        ->assertOk(); // central homepage, not the tenant route
+        ->assertRedirect(route('central.shops'));
 
     expect(tenant())->toBeNull();
 });
