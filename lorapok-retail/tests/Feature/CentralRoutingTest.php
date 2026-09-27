@@ -7,14 +7,15 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Routing on the central domain.
- *
- * Replaces Laravel's stub test, which asserted that `/` returns 200. The root
- * of the central app is now the operator panel, so it redirects rather than
- * rendering a page.
  */
-it('sends the central root to the operator panel', function () {
+it('serves the public site at the central root', function () {
+    // For ten phases `/` redirected into the operator panel, which is behind
+    // auth — so an anonymous visitor to the root domain hit a login wall and
+    // had no way to find out what this product even is.
     $this->get('http://lorapok.localhost/')
-        ->assertRedirect(route('central.shops'));
+        ->assertOk()
+        ->assertSee('Lorapok Retail')
+        ->assertSee('Start your shop');
 });
 
 it('sends an unauthenticated operator to the central login page', function () {

@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Central\LogoutController;
+use App\Http\Controllers\Marketing\LeadController;
+use App\Http\Controllers\Marketing\PageController;
+use App\Http\Controllers\Marketing\RobotsController;
+use App\Http\Controllers\Marketing\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,10 +42,32 @@ foreach ($domains as $index => $domain) {
             ? $route->name($name)
             : $route;
 
+        // The public site. `/` used to redirect into the operator panel, so an
+        // anonymous visitor to the root domain hit a login wall — there was no
+        // way to learn what this product is without already having an account.
+        $name(Route::get('/', [PageController::class, 'home']), 'marketing.home');
+        $name(Route::get('/features', [PageController::class, 'features']), 'marketing.features');
+        $name(Route::get('/pricing', [PageController::class, 'pricing']), 'marketing.pricing');
+        $name(Route::get('/legal/privacy', [PageController::class, 'privacy']), 'marketing.privacy');
+        $name(Route::get('/legal/terms', [PageController::class, 'terms']), 'marketing.terms');
+
+        $name(Route::get('/contact', [LeadController::class, 'contact']), 'marketing.contact');
+        $name(Route::get('/start', [LeadController::class, 'apply']), 'marketing.apply');
         $name(
-            Route::get('/', fn () => redirect()->route('central.shops')),
-            'home',
+            Route::get('/thanks/{kind}', [LeadController::class, 'thanks'])
+                ->whereIn('kind', ['contact', 'apply']),
+            'marketing.thanks',
         );
+
+        // Both forms are unauthenticated and on the open internet. The throttle
+        // is per IP and deliberately tight: these are submitted once, not
+        // repeatedly, so anything reaching the limit is not a customer.
+        Route::middleware('throttle:6,1')->group(function () use ($name) {
+            $name(Route::post('/contact', [LeadController::class, 'storeContact']), 'marketing.contact.store');
+            $name(Route::post('/start', [LeadController::class, 'storeApplication']), 'marketing.apply.store');
+        });
+
+        $name(Route::get('/sitemap.xml', SitemapController::class), 'marketing.sitemap');
 
         $name(
             Route::livewire('/admin/login', 'central.auth.login')->middleware('guest:web'),
@@ -61,3 +87,16 @@ foreach ($domains as $index => $domain) {
         });
     });
 }
+
+/*
+|--------------------------------------------------------------------------
+| robots.txt
+|--------------------------------------------------------------------------
+|
+| Outside the central-domain loop, because it has to answer on shop subdomains
+| too — and there it says the opposite. The shipped static file was the Laravel
+| stub (`Disallow:` with nothing after it), which permits crawling everything,
+| including the operator panel and every shop's sign-in page.
+|
+*/
+Route::get('/robots.txt', RobotsController::class)->name('robots');
