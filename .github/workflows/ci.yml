@@ -150,3 +150,36 @@ jobs:
             echo "::error::Tailwind bundle is only $SIZE bytes - a @source directive is probably missing"
             exit 1
           fi
+
+  brand-assets:
+    name: Brand Assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ./.github/actions/setup-node-app
+
+      # The icons are committed because public/favicon.ico is fetched by path
+      # and public/build is gitignored — a build-time-only favicon does not
+      # exist in a fresh checkout. Committed bytes need proving rather than
+      # trusting: a logo changed without regenerating is otherwise invisible.
+      #
+      # This only works because the generator is byte-deterministic. It was not
+      # at first: writing the three font files concurrently let resvg read one
+      # before it was flushed, silently producing a slightly different PNG.
+      - name: Assert committed brand assets match the source SVG
+        working-directory: lorapok-retail
+        run: |
+          npm run brand -- "$RUNNER_TEMP/brand"
+          FAILED=0
+          for f in favicon.ico favicon-16x16.png favicon-32x32.png \
+                   apple-touch-icon.png android-chrome-192x192.png \
+                   android-chrome-512x512.png og-image.png \
+                   brand/play-store-512.png brand/lockup.png; do
+            if ! cmp -s "public/$f" "$RUNNER_TEMP/brand/$f"; then
+              echo "::error file=lorapok-retail/public/$f::Stale. Run: ./vendor/bin/sail npm run brand"
+              FAILED=1
+            fi
+          done
+          exit $FAILED

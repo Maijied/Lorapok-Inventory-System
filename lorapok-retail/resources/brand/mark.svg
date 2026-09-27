@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lorapok Retail">
+  <title>Lorapok Retail</title>
+  <!--
+    The Lorapok Retail mark.
+
+    A price tag, because it reads as retail instantly and survives being
+    shrunk: at 16px the eyelet and the notch are still distinguishable, which
+    a letterform or a thin outline would not be. Everything is built from
+    three shapes for that reason.
+
+    The 20% safe area is not optional — Android maskable icons crop to a
+    circle, and IconController applies the same margin to the per-shop icon,
+    so the two stay consistent.
+  -->
+  <defs>
+    <linearGradient id="lr-tag" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a99bff"/>
+      <stop offset="55%" stop-color="#9075ff"/>
+      <stop offset="100%" stop-color="#6d4aff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-bleed background: maskable icons must not show a transparent corner. -->
+  <rect width="512" height="512" rx="112" fill="#0b0d12"/>
+
+  <!-- The tag body, rotated 45° about the centre so the notch points out. -->
+  <g transform="rotate(-45 256 256)">
+    <rect x="140" y="140" width="232" height="232" rx="44" fill="url(#lr-tag)"/>
+    <!-- The eyelet, punched rather than drawn, so it stays open at any size. -->
+    <circle cx="196" cy="196" r="30" fill="#0b0d12"/>
+  </g>
+
+  <!-- Two ledger rules across the tag: stock in, stock out. Kept short of the
+       edges so they read as marks on the tag, not as a division of it. -->
+  <g stroke="#0b0d12" stroke-width="22" stroke-linecap="round" opacity="0.55">
+    <path d="M232 300 H352"/>
+    <path d="M232 356 H304"/>
+  </g>
+</svg>
