@@ -29,3 +29,6 @@ Thumbs.db
 **/caddy
 frankenphp
 frankenphp-worker.php
+
+# PHPStan result cache (persisted by CI, never committed)
+.phpstan-cache

@@ -2,6 +2,10 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
+    # Persisted in CI so a run analyses only what changed. Without a stable
+    # path the cache lands in /tmp and is gone with the runner.
+    tmpDir: .phpstan-cache
+
     # Application code only. Pest tests use dynamic $this/test() inside
     # closures, which PHPStan cannot resolve without the Pest extension —
     # it reports false positives there rather than real defects. Test
