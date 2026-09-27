@@ -81,9 +81,16 @@ it('only calls artisan commands that exist', function () {
 
     $known = array_keys(Artisan::all());
 
-    foreach (array_unique($matches[1]) as $command) {
-        expect($known)->toContain($command, "deploy.yml calls `php artisan {$command}`, which is not registered");
-    }
+    // Collected and asserted once rather than per command: Pest's toContain()
+    // takes variadic VALUES, not a failure message, so passing one made it
+    // look for the message inside the array too — and the test failed naming
+    // `migrate`, which is plainly registered.
+    $unknown = array_values(array_diff(array_unique($matches[1]), $known));
+
+    expect($unknown)->toBe(
+        [],
+        'deploy.yml calls artisan commands that are not registered: '.implode(', ', $unknown)
+    );
 })->skip(fn () => ! is_file(deployWorkflow()), 'Workflows are above the Sail mount; this runs in CI.');
 
 it('can cache its routes, which the production image requires', function () {
