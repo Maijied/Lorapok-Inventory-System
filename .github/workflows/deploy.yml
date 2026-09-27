@@ -1,0 +1,139 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+    inputs:
+      skip_migrations:
+        description: 'Skip the central migration step'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  # Never abandon a half-finished deploy to start a newer one.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # Secrets cannot be referenced in a job-level `if`, so their presence is
+  # resolved once here and passed down as an output. This is what lets the
+  # pipeline be merged, tested and dormant rather than merged and red: with no
+  # credentials configured the image still builds and the deploy skips loudly.
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    outputs:
+      can_deploy: ${{ steps.check.outputs.can_deploy }}
+    steps:
+      - id: check
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "can_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "Deployment credentials present."
+          else
+            echo "can_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::RAILWAY_TOKEN is not set — building the image but not deploying. See docs/deployment.md."
+          fi
+
+  build:
+    name: Build image
+    needs: preflight
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          # Tagged by SHA so a deploy names exactly one immutable build, plus
+          # `latest` for humans pulling the self-host bundle.
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: lorapok-retail
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy
+    needs: [preflight, build]
+    if: needs.preflight.outputs.can_deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://lorapok.tech
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      # Central migrations only. Tenant databases are migrated by a queued job
+      # so that a deploy does not block on however many shops exist — at fifty
+      # shops a synchronous migration would hold the release for minutes.
+      - name: Migrate the central database
+        if: ${{ ! inputs.skip_migrations }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway run --service app -- php artisan migrate --force
+
+      - name: Release
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway redeploy --service app --yes
+
+      - name: Queue tenant migrations
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway run --service app -- php artisan tenants:migrate-queued
+
+  smoke:
+    name: Smoke test
+    needs: [preflight, deploy]
+    if: needs.preflight.outputs.can_deploy == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # A deploy that returns 200 on the health endpoint but 500 on every shop
+      # is not a successful deploy. Both are checked.
+      - name: Health endpoint
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://lorapok.tech/up || true)
+            [ "$code" = "200" ] && { echo "Healthy after ${i} attempt(s)."; exit 0; }
+            sleep 10
+          done
+          echo "::error::/up never returned 200"
+          exit 1
+
+      - name: A tenant subdomain still resolves
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://demo.lorapok.tech/login || true)
+          if [ "$code" != "200" ]; then
+            echo "::error::demo.lorapok.tech/login returned $code — tenancy is not resolving"
+            exit 1
+          fi

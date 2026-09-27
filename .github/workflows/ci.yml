@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, not only those targeting main. A stacked PR — one
+  # phase branched off the previous while it is still in review — otherwise
+  # gets no checks at all, which is exactly when they are most wanted.
   pull_request:
-    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
