@@ -97,7 +97,7 @@ it('does not render an unsafe accent into the icon', function () {
 
     expect($svg)->not->toContain('#gg"><')
         // Falls back to the Lorapok violet rather than rendering the value.
-        ->and($svg)->toContain('#7c5cff');
+        ->and($svg)->toContain(Tenant::ACCENT_PALETTE[0]);
 });
 
 it('cannot store an accent long enough to break out of the attribute', function () {

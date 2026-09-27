@@ -64,6 +64,6 @@ class ManifestController
      */
     private function safeAccent(?string $accent): string
     {
-        return preg_match('/^#[0-9a-f]{6}$/i', (string) $accent) ? $accent : '#7c5cff';
+        return preg_match('/^#[0-9a-f]{6}$/i', (string) $accent) ? $accent : Tenant::ACCENT_PALETTE[0];
     }
 }

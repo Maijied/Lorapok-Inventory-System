@@ -139,14 +139,10 @@ class extends Component
                     Remember me
                 </label>
 
-                <button
-                    type="submit"
-                    class="w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                    wire:loading.attr="disabled"
-                >
+                <x-ui.button type="submit" class="w-full" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="login">Sign in</span>
                     <span wire:loading wire:target="login">Signing in…</span>
-                </button>
+                </x-ui.button>
             </form>
         </div>
 

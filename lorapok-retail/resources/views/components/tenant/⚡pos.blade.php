@@ -362,7 +362,7 @@ class extends Component
                            class="w-40 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg-base)]/60 px-3 py-2 tabular font-[family-name:var(--font-mono)] text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none">
                 </div>
                 <button wire:click="openShift" type="button"
-                        class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                        class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-on-accent)] hover:opacity-90">
                     Open shift
                 </button>
             </div>
@@ -527,7 +527,7 @@ class extends Component
             <button wire:click="checkout" wire:loading.attr="disabled" type="button"
                     data-requires-online
                     @disabled($cart === [])
-                    class="mt-4 w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-40">
+                    class="mt-4 w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-[var(--color-on-accent)] hover:opacity-90 disabled:opacity-40">
                 <span wire:loading.remove wire:target="checkout">Complete sale</span>
                 <span wire:loading wire:target="checkout">Working…</span>
             </button>

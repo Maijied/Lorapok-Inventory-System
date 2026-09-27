@@ -294,7 +294,7 @@ class extends Component
 
         <div class="flex items-center gap-3 border-t border-[var(--color-border)] pt-5">
             <button type="submit" wire:loading.attr="disabled"
-                    class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-60">
+                    class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-[var(--color-on-accent)] hover:opacity-90 disabled:opacity-60">
                 <span wire:loading.remove wire:target="save">{{ $productId ? 'Save changes' : 'Create product' }}</span>
                 <span wire:loading wire:target="save">Saving…</span>
             </button>

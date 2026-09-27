@@ -121,24 +121,15 @@ class extends Component
     {{-- ── Quick actions ─────────────────────────────────────────────── --}}
     <div class="mt-6 flex flex-wrap gap-3 animate-fade-slide-up stagger-3">
         @if ($this->can(Permission::CREATE_SALES))
-            <a href="{{ route('tenant.pos') }}" wire:navigate
-               class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90">
-                Start selling
-            </a>
+            <x-ui.button :href="route('tenant.pos')" wire:navigate>Start selling</x-ui.button>
         @endif
 
         @if ($this->can(Permission::MANAGE_PRODUCTS))
-            <a href="{{ route('tenant.products.create') }}" wire:navigate
-               class="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg-surface-hover)]">
-                Add a product
-            </a>
+            <x-ui.button variant="secondary" :href="route('tenant.products.create')" wire:navigate>Add a product</x-ui.button>
         @endif
 
         @if ($this->can(Permission::VIEW_REPORTS))
-            <a href="{{ route('tenant.reports') }}" wire:navigate
-               class="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg-surface-hover)]">
-                Open reports
-            </a>
+            <x-ui.button variant="secondary" :href="route('tenant.reports')" wire:navigate>Open reports</x-ui.button>
         @endif
     </div>
 

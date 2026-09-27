@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './tokens.css';
+@import './retail-tokens.css';
 @import './animations.css';
 
 /* Tailwind v4 does not reliably discover class strings in Blade templates or in
@@ -29,6 +30,13 @@
     --color-ok: var(--color-ok);
     --color-warn: var(--color-warn);
     --color-danger: var(--color-danger);
+
+    /* The semantic contract — see retail-tokens.css. */
+    --color-positive: var(--r-positive);
+    --color-negative: var(--r-negative);
+    --color-attention: var(--r-attention);
+    --color-info: var(--r-info);
+    --color-on-accent: var(--color-on-accent);
 
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
