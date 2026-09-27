@@ -53,6 +53,10 @@
             </div>
         @endif
 
+        <div class="pt-1">
+            <x-ui.theme-toggle />
+        </div>
+
         <form method="POST" action="{{ $logoutRoute }}" class="pt-1">
             @csrf
             <button type="submit"

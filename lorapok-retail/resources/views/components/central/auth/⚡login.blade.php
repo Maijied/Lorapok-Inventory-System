@@ -83,7 +83,7 @@ class extends Component
                 </div>
 
                 <button type="submit" wire:loading.attr="disabled"
-                        class="w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-60">
+                        class="w-full rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-[var(--color-on-accent)] hover:opacity-90 disabled:opacity-60">
                     <span wire:loading.remove wire:target="login">Sign in</span>
                     <span wire:loading wire:target="login">Signing in…</span>
                 </button>

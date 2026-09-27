@@ -6,7 +6,13 @@
     // dropped rather than rendered.
     $accent = preg_match('/^#[0-9a-f]{6}$/i', (string) tenant('accent'))
         ? tenant('accent')
-        : '#7c5cff';
+        : App\Models\Tenant::ACCENT_PALETTE[0];
+
+    // Which text colour stays legible on this shop's accent is a per-shop
+    // question, and CSS has no luminance function — so it is answered here and
+    // injected. Hardcoding `text-white` on accent buttons put nine primary
+    // actions below the AA floor.
+    $onAccent = App\Support\Contrast::onColor($accent);
     $theme = in_array(tenant('theme'), ['dark', 'light'], true) ? tenant('theme') : 'dark';
 
     $user = auth('tenant')->user();
@@ -15,7 +21,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
       data-theme="{{ $theme }}"
-      style="--color-accent: {{ $accent }}">
+      style="--color-accent: {{ $accent }}; --color-on-accent: {{ $onAccent }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,6 +32,19 @@
     <link rel="icon" type="image/svg+xml" href="{{ route('tenant.icon', ['size' => 192]) }}">
     <link rel="apple-touch-icon" href="{{ route('tenant.icon', ['size' => 192]) }}">
     <meta name="theme-color" content="#06080d">
+
+    {{-- Applies a per-user theme override before first paint. Inline and
+         blocking on purpose: from the bundle it would run after the page has
+         already painted, and a till that flashes dark then goes light is
+         worse than no toggle. --}}
+    <script>
+        try {
+            var t = localStorage.getItem('lorapok.theme');
+            if (t === 'light' || t === 'dark') {
+                document.documentElement.setAttribute('data-theme', t);
+            }
+        } catch (e) { /* storage blocked; the shop default stands */ }
+    </script>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

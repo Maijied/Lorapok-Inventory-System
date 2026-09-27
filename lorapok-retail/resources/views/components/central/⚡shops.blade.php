@@ -155,7 +155,7 @@ class extends Component
         </div>
 
         <button wire:click="$toggle('creating')" type="button"
-                class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+                class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-on-accent)] hover:opacity-90">
             {{ $creating ? 'Cancel' : 'New shop' }}
         </button>
     </div>
@@ -258,7 +258,7 @@ class extends Component
             </div>
 
             <button type="submit" wire:loading.attr="disabled"
-                    class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-60">
+                    class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 font-medium text-[var(--color-on-accent)] hover:opacity-90 disabled:opacity-60">
                 <span wire:loading.remove wire:target="create">Create shop</span>
                 <span wire:loading wire:target="create">Provisioning…</span>
             </button>

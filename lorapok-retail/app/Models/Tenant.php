@@ -87,7 +87,12 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      * Mission Control surface colours.
      */
     public const ACCENT_PALETTE = [
-        '#7c5cff', // violet — Lorapok primary
+        // Every entry must stay legible in BOTH roles: as a button fill with
+        // Contrast::onColor() text on it, and as text on the dark surface.
+        // ContrastTest enforces both — the original '#7c5cff' failed the first
+        // at 4.35:1 with white and 4.11:1 with ink, so the primary action on
+        // every screen had a label below the AA floor either way.
+        '#9075ff', // violet — Lorapok primary
         '#4d9fff', // blue
         '#34d399', // green
         '#fbbf24', // amber

@@ -5,12 +5,34 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="dark">
+@php
+    // The operator panel has no per-shop accent, but it uses the same button
+    // components, so it must define the same token.
+    $accent = App\Models\Tenant::ACCENT_PALETTE[0];
+    $onAccent = App\Support\Contrast::onColor($accent);
+@endphp
+
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+      data-theme="dark"
+      style="--color-accent: {{ $accent }}; --color-on-accent: {{ $onAccent }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ? $title . ' — ' : '' }}{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    {{-- Applies a per-user theme override before first paint. Inline and
+         blocking on purpose: from the bundle it would run after the page has
+         already painted, and a till that flashes dark then goes light is
+         worse than no toggle. --}}
+    <script>
+        try {
+            var t = localStorage.getItem('lorapok.theme');
+            if (t === 'light' || t === 'dark') {
+                document.documentElement.setAttribute('data-theme', t);
+            }
+        } catch (e) { /* storage blocked; the shop default stands */ }
+    </script>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="app-shell-bg min-h-screen antialiased">

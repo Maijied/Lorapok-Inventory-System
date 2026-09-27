@@ -85,8 +85,11 @@ Mission Control tokens, copied **byte-for-byte** from
 `resources/css/tokens.css`. Do not rename tokens or invent new colors —
 re-copy the file to update it.
 
-Primary accent is violet `#7c5cff`. (`~/.claude/skills/lorapok-frontend/SKILL.md`
-lists accent/accent-2 swapped; the shipped `tokens.css` wins.)
+Primary accent is violet `#9075ff` — `Tenant::ACCENT_PALETTE[0]`, never a
+literal. It replaced `#7c5cff`, on which **no text reached WCAG AA**: 4.35:1
+with white, 4.11:1 with ink. `App\Support\Contrast` picks the label colour for
+a shop's accent at render time and injects `--color-on-accent`; `ContrastTest`
+holds every palette entry to AA as a button fill *and* as text on the surface.
 
 `.glass-panel` is the canonical surface. Motion comes from `animations.css`
 (`animate-fade-slide-up`, `.stagger-1..4`, `.shimmer`, `animate-mesh`) — there is

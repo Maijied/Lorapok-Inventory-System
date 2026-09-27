@@ -103,7 +103,7 @@ class extends Component
 
         @if ($this->canManage)
             <a href="{{ route('tenant.products.create') }}" wire:navigate
-               class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+               class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-on-accent)] hover:opacity-90">
                 Add product
             </a>
         @endif

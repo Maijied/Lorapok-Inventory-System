@@ -22,7 +22,7 @@ class IconController
         $tenant = tenant();
 
         $stored = $tenant instanceof Tenant ? $tenant->accent : '';
-        $accent = preg_match('/^#[0-9a-f]{6}$/i', $stored) ? $stored : '#7c5cff';
+        $accent = preg_match('/^#[0-9a-f]{6}$/i', $stored) ? $stored : Tenant::ACCENT_PALETTE[0];
 
         $shopName = $tenant instanceof Tenant ? $tenant->name : 'L';
         $initial = mb_strtoupper(mb_substr(trim($shopName), 0, 1));

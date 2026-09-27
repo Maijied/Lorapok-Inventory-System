@@ -1,0 +1,42 @@
+/* Lorapok Retail — the semantic layer.
+ *
+ * tokens.css carries the Mission Control surfaces, which Retail inherits. This
+ * file adds what Mission Control has no need of: a contract about what a colour
+ * MEANS in a till.
+ *
+ * In a shop, colour carries money. A cashier reads these at a glance, over a
+ * shoulder, under whatever lighting the shop has. So each of these roles owns
+ * a hue, and the brand accent is deliberately excluded from all of them —
+ * otherwise a violet total and a violet "paid" badge say the same thing.
+ *
+ *   --r-positive    money in, paid, received, in stock
+ *   --r-negative    refund, void, overdue, out of stock
+ *   --r-attention   low stock, expiring, needs a decision
+ *   --r-info        neutral state, informational only
+ *
+ * That leaves the brand accent (--color-accent) free to mean exactly one
+ * thing: the primary action. It is per-shop and never semantic.
+ *
+ * Every pair below is held to WCAG AA against its own mode's surfaces by
+ * tests/Unit/DesignTokensTest.php, which parses this file. Changing a value
+ * without checking it fails the build rather than shipping a dim badge.
+ */
+
+:root {
+  /* Dark — back office and the operator panel, where sessions are long and
+   * tables are dense. */
+  --r-positive: #34d399;
+  --r-negative: #fb7185;
+  --r-attention: #fbbf24;
+  --r-info: #38bdf8;
+}
+
+[data-theme="light"] {
+  /* Light — the POS default. A shop counter is bright and often beside a
+   * window; the same mint green that reads clearly on near-black washes out
+   * completely on white, so these are darkened rather than reused. */
+  --r-positive: #047857;
+  --r-negative: #be123c;
+  --r-attention: #b45309;
+  --r-info: #0369a1;
+}
