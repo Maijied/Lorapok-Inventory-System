@@ -4,8 +4,13 @@ Multi-tenant inventory & POS SaaS. A product of Lorapok Labs.
 Super admin provisions shops; each shop gets its own subdomain, its own branding
 and **its own database**.
 
-`retail.lorapok.tech` · shops at `<shop>.retail.lorapok.tech`
+`lorapok.tech` · shops at `<shop>.lorapok.tech`
 Dev: `lorapok.localhost` · shops at `<shop>.lorapok.localhost`
+
+Shops sit on the apex, not under `retail.`, because Cloudflare's free Universal
+SSL covers `*.lorapok.tech` but not a second-level wildcard. That means every
+new shop gets HTTPS instantly at no cost — and that `Tenant::RESERVED_SLUGS`
+must cover every other Lorapok subdomain.
 
 ## Running anything
 
@@ -22,6 +27,13 @@ PDO drivers — no `pdo_mysql`, no `pdo_sqlite` — plus no `gd`, `bcmath` or
 
 Docker Desktop must be running (`systemctl --user start docker-desktop`).
 
+**Never edit a mounted file with `sed -i`** (or anything else that writes a temp
+file and renames over the target). The rename replaces the inode and the
+container's bind mount stops resolving the path until it restarts — the symptom
+is `Failed to open stream: No such file or directory` for a file that plainly
+exists on the host. Write in place instead: `python3 - <<'PY'` with
+`Path(...).write_text(...)`, or a heredoc `cat > file`.
+
 ## Stack
 
 Laravel 13 · Livewire 4 · Tailwind v4 (CSS-first) · MySQL 8.4 · Redis · Pest 4
@@ -30,8 +42,16 @@ Tenancy: `stancl/tenancy ^3.10`, **multi-database mode**.
 ## Non-negotiables
 
 **Money is never a float.** Store integer minor units in `*_minor` BIGINT
-columns with an explicit `currency`. No `float`, no `round()` in `App\Domain`.
-There is an architecture test enforcing this.
+columns with an explicit `currency`. `tests/Unit/ArchitectureTest.php` fails the
+build if a `*_minor` column is ever declared `decimal`/`float`/`double`.
+
+`round()` *is* used in `App\Domain`, deliberately: minor-units x a decimal
+quantity has to collapse back to an integer somewhere, and `(int) round(...)`
+is that place. What must never happen is a float-typed money *value* or a
+float money *column* — the one loses precision permanently, the other silently.
+(An earlier version of this file claimed an architecture test banned `round()`
+outright. No such test existed, and the rule was never followed, because
+`SalesService` cannot multiply a price by 1.5 units without it.)
 
 **Stock is a ledger, not a number.** `stock_movements` is append-only —
 never updated, never deleted. `stock_levels` is a derived cache maintained in
@@ -44,8 +64,10 @@ compensating entries. Soft deletes belong only on catalog entities.
 **The server owns pricing.** The client never supplies a line total or a grand
 total. (The system this replaces trusted browser-computed totals.)
 
-**Tenant isolation is tested, not assumed.** Every model gets an isolation
-test; an architecture test fails the build if one is missing.
+**Tenant isolation is tested, not assumed.** `TenancyIsolationTest` walks
+every class in `App\Models\Tenant` and asserts its table exists in the shop's
+database and does *not* exist centrally — so a model added later is covered
+without anyone remembering to add a test.
 
 ## Engineering rules (Lorapok Labs)
 

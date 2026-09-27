@@ -1,0 +1,39 @@
+name: Setup PHP application
+description: >
+  PHP, the extensions this app actually needs, a warm Composer cache and an
+  installed vendor/ — in one step, so the jobs that need PHP cannot drift
+  apart. They already had: only one of the two cached vendor/, so static
+  analysis re-downloaded every package on every run.
+
+inputs:
+  php-version:
+    description: PHP version to install.
+    required: false
+    default: '8.4'
+  working-directory:
+    description: Application root, relative to the repository.
+    required: false
+    default: lorapok-retail
+
+runs:
+  using: composite
+  steps:
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        # pdo_mysql is not optional: tenancy provisions real databases, so
+        # there is no in-memory shortcut for this suite.
+        extensions: pdo_mysql, redis, gd, bcmath, intl, zip
+        coverage: none
+
+    - uses: actions/cache@v4
+      with:
+        path: ${{ inputs.working-directory }}/vendor
+        key: composer-${{ inputs.php-version }}-${{ hashFiles(format('{0}/composer.lock', inputs.working-directory)) }}
+        restore-keys: composer-${{ inputs.php-version }}-
+
+    # A composite action does not inherit the workflow's defaults.run, so the
+    # working directory has to be set explicitly on every step.
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: composer install --no-interaction --prefer-dist --no-progress

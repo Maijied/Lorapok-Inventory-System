@@ -1,7 +1,12 @@
 <?php
 
+use App\Domain\Reporting\DateRange;
+use App\Domain\Reporting\ReportService;
+use App\Enums\Permission;
 use App\Models\Tenant\Setting;
+use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -9,72 +14,161 @@ new
 #[Layout('components.layouts.tenant')]
 class extends Component
 {
-    public function logout(): void
+    #[Computed]
+    public function service(): ReportService
     {
-        Auth::guard('tenant')->logout();
-        session()->invalidate();
-        session()->regenerateToken();
-
-        $this->redirect(route('tenant.login'), navigate: true);
+        return app(ReportService::class);
     }
 
-    public function with(): array
+    #[Computed]
+    public function today(): array
     {
-        return [
-            'user' => Auth::guard('tenant')->user(),
-            'currency' => Setting::get('locale.currency', 'BDT'),
-        ];
+        return $this->service->summary(DateRange::today($this->service->timezone()));
+    }
+
+    #[Computed]
+    public function valuation(): array
+    {
+        return $this->service->stockValuation();
+    }
+
+    #[Computed]
+    public function lowStock()
+    {
+        return $this->service->lowStock(50);
+    }
+
+    #[Computed]
+    public function symbol(): string
+    {
+        return (string) Setting::get('locale.currency_symbol', '৳');
+    }
+
+    /**
+     * Every tile is permission-gated individually.
+     *
+     * A cashier has VIEW_DASHBOARD but not VIEW_MARGIN, and stock value is
+     * computed at average *cost* — putting it on an ungated dashboard would
+     * leak exactly the figure the permission exists to protect.
+     */
+    public function can(string $permission): bool
+    {
+        return Auth::guard('tenant')->user()?->can($permission) ?? false;
     }
 };
 ?>
 
-<div class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-    <div class="mb-8 flex flex-wrap items-center justify-between gap-4 animate-fade-slide-up">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-[var(--color-text)]">
-                {{ tenant('name') }}
-            </h1>
-            <p class="mt-1 text-sm text-[var(--color-muted)]">
-                Signed in as {{ $user->name }}
-                <span class="text-[var(--color-accent)]">
-                    ({{ $user->getRoleNames()->map(fn ($r) => str_replace('_', ' ', $r))->join(', ') ?: 'no role' }})
-                </span>
-            </p>
-        </div>
-
-        <button wire:click="logout"
-                class="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-text)]">
-            Sign out
-        </button>
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-8 animate-fade-slide-up">
+        <h1 class="text-2xl font-semibold tracking-tight text-[var(--color-text)]">
+            {{ tenant('name') }}
+        </h1>
+        <p class="mt-1 text-sm text-[var(--color-muted)]">
+            {{ now($this->service->timezone())->format('l, j F Y') }}
+        </p>
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @foreach ([
-            ['Products', '—', 'Catalogue not built yet'],
-            ['Today’s sales', $currency . ' —', 'POS lands in a later phase'],
-            ['Stock value', $currency . ' —', 'Computed from the ledger'],
-        ] as $i => [$label, $value, $hint])
-            <div class="glass-panel p-6 animate-fade-slide-up stagger-{{ $i + 1 }}">
-                <p class="text-sm text-[var(--color-muted)]">{{ $label }}</p>
-                {{-- Real figures are never rendered as a fake zero; an unknown
-                     value shows an em dash until the module exists. --}}
-                <p class="mt-2 text-2xl font-semibold tabular text-[var(--color-text)]
-                          font-[family-name:var(--font-mono)]">{{ $value }}</p>
-                <p class="mt-1 text-xs text-[var(--color-muted)]">{{ $hint }}</p>
+    {{-- ── Today ─────────────────────────────────────────────────────── --}}
+    @php
+        $tiles = [];
+
+        if ($this->can(Permission::VIEW_SALES)) {
+            $tiles[] = [
+                'Today’s takings',
+                Money::ofMinor($this->today['net_minor'])->format($this->symbol),
+                $this->today['sales_count'] . ' ' . str('sale')->plural($this->today['sales_count']),
+            ];
+        }
+
+        if ($this->can(Permission::VIEW_MARGIN)) {
+            $tiles[] = [
+                'Today’s margin',
+                Money::ofMinor($this->today['margin_minor'])->format($this->symbol),
+                $this->today['margin_pct'] . '% of takings',
+            ];
+            $tiles[] = [
+                'Stock value',
+                Money::ofMinor($this->valuation['value_minor'])->format($this->symbol),
+                'at average cost',
+            ];
+        }
+
+        if ($this->can(Permission::VIEW_PRODUCTS)) {
+            $count = $this->lowStock->count();
+            $tiles[] = [
+                'Needs reordering',
+                // 50 is the query limit, so report it as "50+" rather than
+                // implying the number is exact.
+                $count >= 50 ? '50+' : (string) $count,
+                $count === 0 ? 'nothing below its reorder level' : 'at or below reorder level',
+            ];
+        }
+    @endphp
+
+    @if ($tiles !== [])
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach ($tiles as $i => [$label, $value, $hint])
+                <div class="glass-panel p-5 animate-fade-slide-up stagger-{{ min($i + 1, 4) }}">
+                    <p class="text-sm text-[var(--color-muted)]">{{ $label }}</p>
+                    <p class="mt-2 text-2xl font-semibold tabular text-[var(--color-text)]
+                              font-[family-name:var(--font-mono)]">{{ $value }}</p>
+                    <p class="mt-1 text-xs text-[var(--color-muted)]">{{ $hint }}</p>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- ── Quick actions ─────────────────────────────────────────────── --}}
+    <div class="mt-6 flex flex-wrap gap-3 animate-fade-slide-up stagger-3">
+        @if ($this->can(Permission::CREATE_SALES))
+            <a href="{{ route('tenant.pos') }}" wire:navigate
+               class="rounded-[var(--radius)] bg-[var(--color-accent)] px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90">
+                Start selling
+            </a>
+        @endif
+
+        @if ($this->can(Permission::MANAGE_PRODUCTS))
+            <a href="{{ route('tenant.products.create') }}" wire:navigate
+               class="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg-surface-hover)]">
+                Add a product
+            </a>
+        @endif
+
+        @if ($this->can(Permission::VIEW_REPORTS))
+            <a href="{{ route('tenant.reports') }}" wire:navigate
+               class="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg-surface-hover)]">
+                Open reports
+            </a>
+        @endif
+    </div>
+
+    {{-- ── What needs attention ──────────────────────────────────────── --}}
+    @if ($this->can(Permission::VIEW_PRODUCTS) && $this->lowStock->isNotEmpty())
+        <div class="glass-panel mt-6 p-6 animate-fade-slide-up stagger-4">
+            <div class="flex items-center justify-between gap-4">
+                <h2 class="text-sm font-medium text-[var(--color-text)]">Running low</h2>
+                <a href="{{ route('tenant.products') }}" wire:navigate
+                   class="text-xs text-[var(--color-accent)] hover:underline">All products</a>
             </div>
-        @endforeach
-    </div>
 
-    <div class="glass-panel mt-6 p-6 animate-fade-slide-up stagger-4">
-        <h2 class="text-sm font-medium text-[var(--color-text)]">Your permissions</h2>
-        <div class="mt-3 flex flex-wrap gap-2">
-            @forelse ($user->getAllPermissions()->pluck('name')->sort() as $permission)
-                <span class="rounded-full border border-[var(--color-border)] bg-white/5 px-2.5 py-1 text-xs text-[var(--color-muted)]">
-                    {{ str_replace('_', ' ', $permission) }}
-                </span>
-            @empty
-                <span class="text-sm text-[var(--color-muted)]">No permissions assigned.</span>
-            @endforelse
+            <ul class="mt-3 divide-y divide-[var(--color-border)]">
+                @foreach ($this->lowStock->take(5) as $row)
+                    <li class="flex items-center justify-between gap-4 py-2.5">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm text-[var(--color-text)]">{{ $row->name }}</p>
+                            <p class="truncate text-xs text-[var(--color-muted)]">{{ $row->sku }}</p>
+                        </div>
+                        {{-- Quantities use --color-text, never --color-muted:
+                             a number someone acts on has to be legible. --}}
+                        <p class="shrink-0 tabular text-sm text-[var(--color-text)]
+                                  font-[family-name:var(--font-mono)]">
+                            {{ rtrim(rtrim(number_format((float) $row->on_hand, 2), '0'), '.') }}
+                            <span class="text-[var(--color-muted)]">/
+                                {{ rtrim(rtrim(number_format((float) $row->reorder_level, 2), '0'), '.') }}</span>
+                        </p>
+                    </li>
+                @endforeach
+            </ul>
         </div>
-    </div>
+    @endif
 </div>

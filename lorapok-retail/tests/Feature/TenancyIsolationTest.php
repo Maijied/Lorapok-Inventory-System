@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Tenant;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Tenant isolation.
@@ -140,4 +141,56 @@ it('blocks tenant routes on the central domain', function () {
         ->assertRedirect(route('central.shops'));
 
     expect(tenant())->toBeNull();
+});
+
+it('keeps every tenant model out of the central database', function () {
+    // CLAUDE.md promises "every model gets an isolation test; an architecture
+    // test fails the build if one is missing". A per-model checklist would
+    // only prove each model was NAMED somewhere. This proves the property
+    // itself, generically, for every model that exists now or is added later:
+    // a tenant model's table must not exist centrally, so a forgotten scope
+    // cannot silently fall back to shared data.
+    $tenant = makeTenant('alpha');
+
+    $models = collect(glob(app_path('Models/Tenant/*.php')))
+        ->map(fn (string $path): string => 'App\\Models\\Tenant\\'.basename($path, '.php'));
+
+    expect($models)->not->toBeEmpty();
+
+    $leaked = [];
+    $misconnected = [];
+
+    foreach ($models as $class) {
+        $table = (new $class)->getTable();
+
+        // Present in the shop's own database...
+        tenancy()->initialize($tenant);
+        $inTenant = Schema::connection('tenant')->hasTable($table);
+        $connection = (new $class)->getConnectionName();
+        tenancy()->end();
+
+        if (! $inTenant) {
+            $misconnected[] = "{$class}: table `{$table}` missing from the tenant schema";
+        }
+
+        // ...and absent from the central one.
+        //
+        // `users` is the deliberate exception and the only one: the central
+        // database holds Lorapok operators, each shop database holds that
+        // shop's staff. Same table name, different databases, different
+        // people — which is exactly why the same email may exist in both
+        // without the two ever authenticating across the boundary.
+        if ($table !== 'users' && Schema::connection('mysql')->hasTable($table)) {
+            $leaked[] = "{$class}: table `{$table}` also exists centrally";
+        }
+
+        // A hardcoded connection name would pin the model to one database and
+        // defeat tenancy entirely.
+        if ($connection !== null && $connection !== 'tenant') {
+            $misconnected[] = "{$class}: pinned to connection `{$connection}`";
+        }
+    }
+
+    expect($leaked)->toBe([], implode("\n", $leaked))
+        ->and($misconnected)->toBe([], implode("\n", $misconnected));
 });
