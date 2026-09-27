@@ -66,10 +66,19 @@ class Tenant extends BaseTenant implements TenantWithDatabase
      * central routing or with infrastructure hostnames.
      */
     public const RESERVED_SLUGS = [
+        // Central routing and infrastructure.
         'admin', 'api', 'app', 'assets', 'billing', 'blog', 'cdn', 'dashboard',
-        'developer', 'docs', 'files', 'ftp', 'help', 'imap', 'mail', 'media',
-        'ns1', 'ns2', 'pop', 'retail', 'smtp', 'static', 'status', 'support',
-        'test', 'staging', 'webmail', 'www',
+        'developer', 'docs', 'download', 'downloads', 'files', 'ftp', 'help',
+        'imap', 'mail', 'media', 'mx', 'ns1', 'ns2', 'pop', 'pricing', 'retail',
+        'smtp', 'static', 'status', 'support', 'test', 'staging', 'webmail',
+        'www',
+
+        // Shops live at <slug>.lorapok.tech, sharing the apex with every other
+        // Lorapok Labs product. Handing one of these to a shop would take a
+        // live site off the air, so they are reserved here rather than
+        // discovered in production.
+        'ai', 'atlas', 'curse', 'cursor', 'cursor-dev', 'labs', 'loragent',
+        'maizied', 'mission-control', 'reportkit', 'seeyou',
     ];
 
     /**

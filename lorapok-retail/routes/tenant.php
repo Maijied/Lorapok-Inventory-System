@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Tenant\IconController;
+use App\Http\Controllers\Tenant\LogoutController;
 use App\Http\Controllers\Tenant\ManifestController;
 use App\Http\Middleware\BlockSuspendedShops;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,10 @@ Route::middleware([
 
     Route::middleware('auth:tenant')->group(function () {
         Route::livewire('/', 'tenant.dashboard')->name('tenant.dashboard');
+
+        // Sign-out lives in the nav on every page, so it is a route rather
+        // than an action on one component. POST because it changes state.
+        Route::post('/logout', LogoutController::class)->name('tenant.logout');
 
         Route::livewire('/pos', 'tenant.pos')->name('tenant.pos');
         Route::livewire('/reports', 'tenant.reports')->name('tenant.reports');

@@ -8,6 +8,8 @@
         ? tenant('accent')
         : '#7c5cff';
     $theme = in_array(tenant('theme'), ['dark', 'light'], true) ? tenant('theme') : 'dark';
+
+    $user = auth('tenant')->user();
 @endphp
 
 <!DOCTYPE html>
@@ -39,8 +41,26 @@
         Offline — you can look things up, but sales cannot be completed.
     </div>
 
-    <main id="main-content">
-        {{ $slot }}
-    </main>
+    @if ($user)
+        <x-app-shell
+            :brand-name="tenant('name') ?? config('app.name')"
+            brand-sub="Lorapok Retail"
+            :brand-href="route('tenant.dashboard')"
+            :logout-route="route('tenant.logout')"
+            :user-name="$user->name"
+            :user-meta="$user->getRoleNames()->map(fn ($r) => str_replace('_', ' ', $r))->join(', ') ?: null">
+
+            <x-slot:nav>
+                <x-tenant.nav />
+            </x-slot:nav>
+
+            {{ $slot }}
+        </x-app-shell>
+    @else
+        {{-- Sign-in and the public manifest routes get no chrome. --}}
+        <main id="main-content">
+            {{ $slot }}
+        </main>
+    @endif
 </body>
 </html>

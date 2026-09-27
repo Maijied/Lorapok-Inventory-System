@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Central\LogoutController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,8 @@ foreach (config('tenancy.central_domains') as $domain) {
 
         Route::middleware('auth:web')->group(function () {
             Route::livewire('/admin/shops', 'central.shops')->name('central.shops');
+
+            Route::post('/admin/logout', LogoutController::class)->name('central.logout');
         });
     });
 }

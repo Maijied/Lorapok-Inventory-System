@@ -1,47 +1,33 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# Agent instructions
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+Read [CLAUDE.md](CLAUDE.md) first. It is the authoritative document for this
+repository; this file only exists because tooling looks for `AGENTS.md`.
 
-## Prerequisites
+## The one rule that breaks everything if ignored
 
-Verify that PHP and Composer are available:
+**Never run `php`, `composer` or `artisan` on the host.** The host PHP has `PDO`
+but zero PDO drivers — no `pdo_mysql`, no `pdo_sqlite` — plus no `gd`, `bcmath`
+or `redis`. Use Sail:
 
-```sh
-php -v
-composer -V
+```bash
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan …
+./vendor/bin/sail pest
+./vendor/bin/sail npm run build
 ```
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
+> This file previously contained the stock Laravel Boost bootstrap, which told
+> agents to verify `php -v` and run `php artisan boost:install` on the host.
+> That directly contradicted CLAUDE.md and could not have worked here. Laravel
+> Boost is not installed and is not planned.
 
-macOS:
+## Before you finish
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
+```bash
+./vendor/bin/pint --test        # host is fine: no database
+./vendor/bin/phpstan analyse    # level 5
+./vendor/bin/sail artisan test
 ```
 
-Windows PowerShell:
-
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
-
-Linux:
-
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
-
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
-
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+Do not edit a mounted file with `sed -i`: the rename replaces the inode and the
+container stops seeing the file. Write in place instead.

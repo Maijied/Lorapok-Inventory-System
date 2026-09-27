@@ -1,0 +1,26 @@
+name: Setup Node application
+description: >
+  Node, the npm cache and `npm ci`. Shared by every job that builds assets, so
+  they agree on one Node version — which matters as soon as a job compares
+  generated files byte for byte.
+
+inputs:
+  node-version:
+    required: false
+    default: '22'
+  working-directory:
+    required: false
+    default: lorapok-retail
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci

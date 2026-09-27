@@ -46,22 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_mysql, redis, gd, bcmath, intl, zip
-          coverage: none
-
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: lorapok-retail/vendor
-          key: composer-${{ hashFiles('lorapok-retail/composer.lock') }}
-          restore-keys: composer-
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - uses: ./.github/actions/setup-php-app
 
       - name: Prepare environment
         run: |
@@ -79,26 +64,45 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: password
 
+      # --parallel gives each worker its own central database (testing_test_N)
+      # and, via ParallelTestingServiceProvider, its own tenant namespace
+      # (tenant_pN_) so two workers cannot drop each other's schemas.
+      #
+      # --processes is pinned rather than left to nproc, which has changed on
+      # ubuntu-latest before and would make run-to-run timings meaningless.
       - name: Run tests
-        run: php artisan test
+        run: |
+          START=$(date +%s)
+          php artisan test --parallel --processes=4 --recreate-databases
+          echo "Suite: $(( $(date +%s) - START ))s" >> "$GITHUB_STEP_SUMMARY"
         env:
           DB_HOST: 127.0.0.1
           DB_DATABASE: testing
           DB_USERNAME: root
           DB_PASSWORD: password
+          TENANCY_DB_USERNAME: root
+          TENANCY_DB_PASSWORD: password
           REDIS_HOST: 127.0.0.1
 
       # Tenant databases are not covered by RefreshDatabase. The suite drops
       # what it creates, but a failed test can leave one behind — fail loudly
       # rather than letting them accumulate on a shared runner.
+      # A leak is a bug, not a note: it means a test created a database that
+      # nothing dropped, and on a shared runner those accumulate until
+      # provisioning fails for an unrelated reason. `LIKE 'tenant\_%'` still
+      # matches the per-process `tenant_p1_…` names, because `\_` is a literal
+      # underscore and `%` covers the rest.
       - name: Check for leaked tenant databases
         if: always()
         run: |
           LEAKED=$(mysql -h 127.0.0.1 -uroot -ppassword -N \
-            -e "SHOW DATABASES LIKE 'tenant\_%';" 2>/dev/null | wc -l)
-          echo "Leaked tenant databases: $LEAKED"
-          if [ "$LEAKED" -ne 0 ]; then
-            echo "::warning::Test run left $LEAKED tenant database(s) behind"
+            -e "SHOW DATABASES LIKE 'tenant\_%';" 2>/dev/null)
+          COUNT=$(printf '%s' "$LEAKED" | grep -c . || true)
+          echo "Leaked tenant databases: $COUNT"
+          if [ "$COUNT" -ne 0 ]; then
+            printf '%s\n' "$LEAKED"
+            echo "::error::Test run left $COUNT tenant database(s) behind"
+            exit 1
           fi
 
   static-analysis:
@@ -108,15 +112,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: pdo_mysql, redis, gd, bcmath, intl, zip
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+      - uses: ./.github/actions/setup-php-app
 
       - name: Check code style
         run: ./vendor/bin/pint --test
@@ -131,14 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: lorapok-retail/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
+      - uses: ./.github/actions/setup-node-app
 
       - name: Build assets
         run: npm run build
