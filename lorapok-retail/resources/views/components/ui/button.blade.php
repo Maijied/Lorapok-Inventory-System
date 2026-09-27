@@ -24,7 +24,7 @@
 --}}
 
 @php
-    $base = 'inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-medium '
+    $base = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius)] font-medium '
         .'transition-opacity disabled:cursor-not-allowed disabled:opacity-50';
 
     $sizes = [
