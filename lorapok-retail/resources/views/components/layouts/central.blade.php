@@ -20,6 +20,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ? $title . ' — ' : '' }}{{ config('app.name') }}</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#06080d">
+
+    {{-- The operator panel is not public, so these are for a pasted link in a
+         team chat rather than for search engines. --}}
+    <meta property="og:title" content="{{ config('app.name') }}">
+    <meta property="og:image" content="{{ asset('og-image.png') }}">
+    <meta name="twitter:card" content="summary_large_image">
     {{-- Applies a per-user theme override before first paint. Inline and
          blocking on purpose: from the bundle it would run after the page has
          already painted, and a till that flashes dark then goes light is
