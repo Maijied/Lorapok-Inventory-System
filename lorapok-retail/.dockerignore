@@ -1,0 +1,19 @@
+# Anything that would bloat the build context or leak into the image.
+.git
+.github
+node_modules
+vendor
+frankenphp
+public/build
+public/hot
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests
+.env
+.env.*
+!.env.example
+docker
+compose.yaml
+*.md

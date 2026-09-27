@@ -23,6 +23,12 @@ PDO drivers — no `pdo_mysql`, no `pdo_sqlite` — plus no `gd`, `bcmath` or
 ./vendor/bin/sail artisan …
 ./vendor/bin/sail pest
 ./vendor/bin/sail npm run dev
+
+# Pint and PHPStan also go through Sail now. Horizon added ext-pcntl to the
+# platform requirements, and the host PHP does not have it — running them
+# directly fails in vendor/composer/platform_check.php.
+./vendor/bin/sail php vendor/bin/pint
+./vendor/bin/sail php vendor/bin/phpstan analyse
 ```
 
 Docker Desktop must be running (`systemctl --user start docker-desktop`).

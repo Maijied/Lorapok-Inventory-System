@@ -22,8 +22,9 @@ runs:
       with:
         php-version: ${{ inputs.php-version }}
         # pdo_mysql is not optional: tenancy provisions real databases, so
-        # there is no in-memory shortcut for this suite.
-        extensions: pdo_mysql, redis, gd, bcmath, intl, zip
+        # there is no in-memory shortcut for this suite. pcntl is required by
+        # Horizon — without it `composer install` refuses the platform.
+        extensions: pdo_mysql, redis, gd, bcmath, intl, zip, pcntl
         coverage: none
 
     - uses: actions/cache@v4
