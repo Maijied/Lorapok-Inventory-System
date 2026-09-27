@@ -19,6 +19,18 @@ services:
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
+            # This project sits on an NTFS partition mounted through FUSE, and
+            # every file operation inside the bind mount crosses that driver.
+            # Measured: stat-ing vendor/ takes 3.84s over the mount and 0.10s
+            # on the container's own filesystem — 38x. PHP's autoloader does
+            # thousands of those per process boot, which was 2.6s of dead time
+            # before a single test ran.
+            #
+            # Named volumes put these two directories in Docker's filesystem
+            # instead. Nothing here is edited by hand, so there is no reason
+            # for either to live on the host.
+            - 'sail-vendor:/var/www/html/vendor'
+            - 'sail-node-modules:/var/www/html/node_modules'
         networks:
             - sail
         depends_on:
@@ -78,6 +90,10 @@ networks:
     sail:
         driver: bridge
 volumes:
+    sail-vendor:
+        driver: local
+    sail-node-modules:
+        driver: local
     sail-mysql:
         driver: local
     sail-redis:

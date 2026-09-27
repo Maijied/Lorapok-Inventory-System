@@ -30,7 +30,13 @@ jobs:
           MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: testing
         ports: ['3306:3306']
+        # The data directory lives in RAM. This suite provisions and drops a
+        # real 37-table database per test to prove tenant isolation, so it is
+        # bound by DDL throughput rather than by query time. The container is
+        # destroyed with the job, so there is nothing to lose by not persisting
+        # it.
         options: >-
+          --tmpfs /var/lib/mysql:rw,noexec,nosuid,size=2g
           --health-cmd="mysqladmin ping -ppassword"
           --health-interval=10s
           --health-timeout=5s
@@ -115,6 +121,16 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup-php-app
+
+      # PHPStan analyses only what changed when its result cache survives.
+      # Keyed on the source tree so a code change invalidates it, with a
+      # restore-key so a partial hit still beats a cold start.
+      - name: Cache PHPStan results
+        uses: actions/cache@v4
+        with:
+          path: lorapok-retail/.phpstan-cache
+          key: phpstan-${{ hashFiles('lorapok-retail/app/**/*.php', 'lorapok-retail/phpstan.neon') }}
+          restore-keys: phpstan-
 
       - name: Check code style
         run: ./vendor/bin/pint --test

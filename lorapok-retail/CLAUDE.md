@@ -33,6 +33,48 @@ PDO drivers — no `pdo_mysql`, no `pdo_sqlite` — plus no `gd`, `bcmath` or
 
 Docker Desktop must be running (`systemctl --user start docker-desktop`).
 
+### `vendor/` and `node_modules/` live in Docker volumes, not on the host
+
+This project sits on `/mnt/NewVolume`, which is **NTFS over FUSE**. Every file
+operation inside a bind mount crosses that driver, and PHP's autoloader does
+thousands per process boot. Measured on the same 11,330 files:
+
+| | |
+|---|---|
+| stat `vendor/` over the bind mount | **3.84 s** |
+| stat `vendor/` in a named volume | **0.39 s** |
+
+So `compose.yaml` mounts both directories as named volumes. Neither is ever
+edited by hand, so nothing is lost by keeping them off the host.
+
+**What this means in practice.** A fresh clone, or anything that changes
+dependencies, installs *inside the container*:
+
+```
+./vendor/bin/sail composer install
+./vendor/bin/sail npm ci
+```
+
+The host keeps its own `vendor/` — `./vendor/bin/sail` is a host script and
+needs it — so the two can drift. If a package behaves oddly, re-run the two
+commands above before suspecting the package: the container's copy is the one
+that actually runs.
+
+### Provisioning loads a schema dump, not ten migrations
+
+`database/schema/tenant-schema.sql` is loaded when a shop's database is
+created, instead of running the ten tenant migrations that build its 37
+tables. Locally that took provisioning from **70.7 s to 21.2 s**, and roughly
+200 tests provision a shop.
+
+A stale dump is **slow, not wrong**: it records which migrations it contains,
+and Laravel runs anything newer on top. Refresh it after adding a tenant
+migration:
+
+```
+./vendor/bin/sail artisan tenants:dump-schema
+```
+
 **Never edit a mounted file with `sed -i`** (or anything else that writes a temp
 file and renames over the target). The rename replaces the inode and the
 container's bind mount stops resolving the path until it restarts — the symptom
