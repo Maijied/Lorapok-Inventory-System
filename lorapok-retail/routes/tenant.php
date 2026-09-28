@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Tenant\IconController;
+use App\Http\Controllers\Tenant\LogoController;
 use App\Http\Controllers\Tenant\LogoutController;
 use App\Http\Controllers\Tenant\ManifestController;
 use App\Http\Middleware\BlockImpersonatedWrites;
@@ -42,6 +43,11 @@ Route::middleware([
         ->whereNumber('size')
         ->name('tenant.icon');
 
+    // The shop's own logo, when it has uploaded one. Same reasoning as
+    // the icon: the manifest points at it, and the manifest is read
+    // before there is a session to check.
+    Route::get('/logo.png', LogoController::class)->name('tenant.logo');
+
     // Route::livewire() resolves a Livewire single-file component by name;
     // the ⚡ prefix in the filename is not part of the component name.
     Route::livewire('/login', 'tenant.auth.login')
@@ -63,6 +69,11 @@ Route::middleware([
         // entered on its behalf.
         Route::livewire('/settings/verification', 'tenant.settings.verification')
             ->name('tenant.verification');
+
+        // `tenants.logo_path` has existed since Phase 1 with nothing
+        // writing to it; this is what writes it.
+        Route::livewire('/settings/branding', 'tenant.settings.branding')
+            ->name('tenant.branding');
 
         Route::livewire('/products', 'tenant.catalog.products')->name('tenant.products');
         Route::livewire('/products/create', 'tenant.catalog.product-form')->name('tenant.products.create');

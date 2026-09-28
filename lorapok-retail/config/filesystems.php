@@ -41,6 +41,26 @@ return [
          * `throw` is deliberate: a silent false from a failed write would let
          * a verification record claim a document it does not have.
          */
+        /*
+         * Shop logos.
+         *
+         * Private, even though a logo is not secret: the icon route already
+         * answers before anyone signs in, so serving through it keeps paths
+         * unguessable without costing anything. A public disk would let one
+         * shop's storage be enumerated from another's.
+         *
+         * Not in tenancy.filesystem.disks, deliberately — same as 'kyc'.
+         * LogoService namespaces by tenant id instead, because the manifest
+         * controller has to reach a logo and a suffixed disk would resolve
+         * against whichever tenant happened to be initialised.
+         */
+        'logos' => [
+            'driver' => 'local',
+            'root' => storage_path('app/logos'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'kyc' => [
             'driver' => 'local',
             'root' => storage_path('app/kyc'),

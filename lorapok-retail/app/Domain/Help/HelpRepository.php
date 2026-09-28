@@ -34,6 +34,7 @@ final class HelpRepository
         'tenant.products.edit' => 'shop/products',
         'tenant.reports' => 'shop/reports',
         'tenant.verification' => 'shop/verification',
+        'tenant.branding' => 'shop/branding',
 
         'central.shops' => 'operator/shops',
         'central.audit' => 'operator/impersonation',
@@ -47,6 +48,7 @@ final class HelpRepository
         'tenant.logout',
         'tenant.manifest',
         'tenant.icon',
+        'tenant.logo',
         'central.login',
         'central.logout',
         'central.kyc.document',
