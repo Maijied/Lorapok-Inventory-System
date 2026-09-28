@@ -36,6 +36,7 @@ final class HelpRepository
 
         'central.shops' => 'operator/shops',
         'central.audit' => 'operator/impersonation',
+        'central.billing' => 'operator/billing',
         'central.verifications' => 'operator/shops',
     ];
 
