@@ -19,11 +19,23 @@ arch('the domain layer does not reach for the framework helpers that hide state'
     // A service that reads the request cannot be called from a queue or a
     // console command without surprises.
     ->not->toUse(['env', 'request', 'session', 'auth'])
-    // One exception, made explicit rather than hidden: an audit row is worth
-    // little without the IP and user agent it came from, and capturing those
-    // at the call site would mean passing them through every caller. In a
-    // console context request() degrades to nulls, which is the right answer.
-    ->ignoring('App\Domain\Central\AuditLog');
+    // Two exceptions, made explicit rather than hidden.
+    //
+    // AuditLog: an audit row is worth little without the IP and user agent it
+    // came from, and capturing those at the call site would mean threading
+    // them through every caller. In a console context request() degrades to
+    // nulls, which is the right answer.
+    //
+    // ImpersonationService: establishing an impersonation session is HTTP by
+    // nature — it logs a user into the current session and reads it back.
+    // There is no version of it that a queue worker could call meaningfully.
+    // The tidier design splits it in two, with token minting in the domain
+    // and the session handling in an HTTP service; that is worth doing, and
+    // it is not worth pretending the rule holds here in the meantime.
+    ->ignoring([
+        'App\Domain\Central\AuditLog',
+        'App\Domain\Impersonation\ImpersonationService',
+    ]);
 
 arch('nothing outside config reads the environment directly')
     ->expect('App')
