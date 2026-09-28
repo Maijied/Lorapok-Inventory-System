@@ -29,12 +29,27 @@ afterEach(function () {
     });
 });
 
-it('serves the download page when the release API is unreachable', function () {
+it('falls back to the committed manifest when the release API is unreachable', function () {
+    Http::fake(['api.github.com/*' => fn () => throw new ConnectionException('network is down')]);
+
+    // The floor doing its job. This is the whole reason CI commits the file:
+    // an outage at GitHub must not empty the download page.
+    $this->get('http://lorapok.localhost/download')
+        ->assertOk()
+        ->assertSee(json_decode((string) file_get_contents(resource_path('releases.json')), true)['tag']);
+});
+
+it('says so honestly when nothing has been released at all', function () {
+    // Pointed at a file that is not there, because the repo's own copy stops
+    // being empty the moment a real release lands — which is exactly how this
+    // assertion went stale once v0.1.0 shipped.
+    config()->set('releases.manifest', resource_path('does-not-exist.json'));
+
     Http::fake(['api.github.com/*' => fn () => throw new ConnectionException('network is down')]);
 
     $this->get('http://lorapok.localhost/download')
         ->assertOk()
-        // Says so honestly rather than rendering a download button that 404s.
+        // Rather than rendering a download button that 404s.
         ->assertSee('No packaged builds yet');
 });
 

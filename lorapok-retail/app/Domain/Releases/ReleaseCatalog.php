@@ -123,7 +123,7 @@ final class ReleaseCatalog
     {
         $empty = ['tag' => '', 'published_at' => null, 'notes_url' => null, 'assets' => []];
 
-        $path = resource_path('releases.json');
+        $path = (string) config('releases.manifest');
 
         if (! is_file($path)) {
             return $empty;

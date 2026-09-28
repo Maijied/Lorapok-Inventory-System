@@ -12,4 +12,10 @@ return [
     // a one-hour cache that is one call an hour, so a token is only worth
     // setting if this app shares an egress address with other GitHub traffic.
     'token' => env('RELEASES_GITHUB_TOKEN'),
+
+    // The copy the release workflow commits back. Configurable only so a
+    // test can point at a file that is not there: once a real release has
+    // landed this file exists in the repo, and the empty-state branch
+    // becomes unreachable from a test that relies on the repo's own copy.
+    'manifest' => resource_path('releases.json'),
 ];
