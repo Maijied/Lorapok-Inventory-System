@@ -84,6 +84,13 @@ foreach ($domains as $index => $domain) {
                 Route::post('/admin/logout', LogoutController::class),
                 'central.logout',
             );
+
+            // Written to since Phase 1 and read by nobody until now. A record
+            // only counts as an audit if someone can go and look at it.
+            $name(
+                Route::livewire('/admin/audit', 'central.audit'),
+                'central.audit',
+            );
         });
     });
 }

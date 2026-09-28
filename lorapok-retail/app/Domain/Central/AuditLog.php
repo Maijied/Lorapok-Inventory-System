@@ -21,6 +21,11 @@ class AuditLog
     /**
      * @param  array<string, mixed>|null  $before
      * @param  array<string, mixed>|null  $after
+     * @param  Tenant|null  $tenant  The shop this concerns, when the subject is
+     *                               not itself a Tenant — a subscription or an
+     *                               invoice, say. Without it those entries
+     *                               would be unfindable by shop, which is the
+     *                               only way anyone ever searches this table.
      */
     public static function record(
         string $action,
@@ -28,6 +33,7 @@ class AuditLog
         ?User $actor = null,
         ?array $before = null,
         ?array $after = null,
+        ?Tenant $tenant = null,
     ): void {
         DB::connection(config('tenancy.database.central_connection'))
             ->table('central_audit_logs')
@@ -36,7 +42,7 @@ class AuditLog
                 'action' => $action,
                 'subject_type' => $subject ? $subject::class : null,
                 'subject_id' => $subject?->getKey(),
-                'tenant_id' => $subject instanceof Tenant ? $subject->id : null,
+                'tenant_id' => $tenant !== null ? $tenant->id : ($subject instanceof Tenant ? $subject->id : null),
                 'before' => $before !== null ? json_encode($before) : null,
                 'after' => $after !== null ? json_encode($after) : null,
                 'ip' => request()->ip(),
