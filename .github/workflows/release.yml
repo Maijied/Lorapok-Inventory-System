@@ -72,8 +72,8 @@ jobs:
           mkdir -p staging
           cp lorapok-retail/compose.yaml staging/
           cp lorapok-retail/.env.example staging/
-          cp docs/self-hosting.md staging/README.md 2>/dev/null \
-            || cp lorapok-retail/resources/docs/operator/self-hosting.md staging/README.md
+          # The same guide the handbook serves, so there is one copy of it.
+          cp lorapok-retail/resources/docs/operator/self-hosting.md staging/README.md
           tar -czf "dist/lorapok-self-host-${{ needs.preflight.outputs.tag }}.tar.gz" -C staging .
 
       - uses: actions/upload-artifact@v4
@@ -110,14 +110,29 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
 
+      # The Android project is generated here rather than committed. Bubblewrap
+      # scaffolds a full Gradle project, and keeping several thousand generated
+      # files in the repository to rebuild them identically on every release is
+      # cost without benefit. `android/twa-manifest.json` is the only part
+      # worth reviewing in a diff, so that is the only part committed.
+      - name: Generate the Android project
+        run: |
+          mkdir -p "$RUNNER_TEMP/twa"
+          cp android/twa-manifest.json "$RUNNER_TEMP/twa/twa-manifest.json"
+          cd "$RUNNER_TEMP/twa"
+          bubblewrap updateConfig --jdkPath "$JAVA_HOME" --androidSdkPath "$ANDROID_HOME"
+          # --skipPwaValidation: the site is behind a login for most routes, so
+          # Lighthouse cannot score it, and its verdict is not what decides
+          # whether this build is correct.
+          bubblewrap init --manifest "${{ vars.ANDROID_MANIFEST_URL || 'https://lorapok.tech/manifest.webmanifest' }}" \
+            --directory . --skipPwaValidation <<< $'\n\n\n\n\n\n\n\n'
+
       - name: Build the signed APK and AAB
-        working-directory: android
+        working-directory: ${{ runner.temp }}/twa
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: |
-          bubblewrap updateConfig --jdkPath "$JAVA_HOME" --androidSdkPath "$ANDROID_HOME"
-          bubblewrap build --skipPwaValidation
+        run: bubblewrap build --skipPwaValidation
 
       # A mismatch here is invisible at runtime except as a stray URL bar,
       # which is the hardest kind of bug to attribute after the fact.
@@ -143,8 +158,8 @@ jobs:
         with:
           name: android
           path: |
-            android/app-release-signed.apk
-            android/app-release-bundle.aab
+            ${{ runner.temp }}/twa/app-release-signed.apk
+            ${{ runner.temp }}/twa/app-release-bundle.aab
           if-no-files-found: error
 
   publish:
@@ -170,7 +185,8 @@ jobs:
           [ -f app-release-bundle.aab ] && mv app-release-bundle.aab "lorapok-retail-$TAG.aab" || true
           # The Android build is sideloaded rather than from the Play Store,
           # so a checksum is the only way anyone can verify what they ran.
-          sha256sum * > SHA256SUMS.txt
+          # -maxdepth 1 -type f: sha256sum on a directory fails the step.
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -exec sha256sum {} + > SHA256SUMS.txt
 
       # Creates the release if absent and updates it if present, so re-running
       # on a tag is safe — which matters because Android is the job most
