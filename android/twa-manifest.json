@@ -1,0 +1,26 @@
+{
+  "packageId": "tech.lorapok.retail",
+  "host": "lorapok.tech",
+  "name": "Lorapok Retail",
+  "launcherName": "Lorapok",
+  "display": "standalone",
+  "themeColor": "#06080d",
+  "navigationColor": "#06080d",
+  "backgroundColor": "#06080d",
+  "startUrl": "/",
+  "iconUrl": "https://lorapok.tech/android-chrome-512x512.png",
+  "maskableIconUrl": "https://lorapok.tech/android-chrome-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "signingKey": {
+    "path": "upload.jks",
+    "alias": "upload"
+  },
+  "orientation": "any",
+  "fallbackType": "customtabs",
+  "enableNotifications": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://lorapok.tech/"
+}
