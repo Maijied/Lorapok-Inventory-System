@@ -120,6 +120,13 @@ foreach ($domains as $index => $domain) {
                 'central.verifications',
             );
 
+            // The billing domain shipped in Phase 15 with no way to reach it:
+            // an operator could not issue an invoice or mark one paid.
+            $name(
+                Route::livewire('/admin/billing', 'central.billing'),
+                'central.billing',
+            );
+
             // Signed AND behind the operator guard: the signature expires, and
             // a leaked link is still useless to anyone not signed in. Either
             // alone would be weaker than both.
