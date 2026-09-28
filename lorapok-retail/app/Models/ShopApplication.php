@@ -33,6 +33,12 @@ class ShopApplication extends Model
 
     protected $guarded = [];
 
+    /** Central, always — see ShopVerification for why this is pinned. */
+    public function getConnectionName(): ?string
+    {
+        return config('tenancy.database.central_connection');
+    }
+
     /** @var array<string, string> */
     protected $attributes = ['status' => self::PENDING];
 

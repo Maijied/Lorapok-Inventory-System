@@ -3,7 +3,6 @@
 use App\Domain\Verification\VerificationService;
 use App\Enums\VerificationStatus;
 use App\Models\ShopVerification;
-use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;

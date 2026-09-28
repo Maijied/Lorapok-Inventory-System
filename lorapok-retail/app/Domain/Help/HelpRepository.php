@@ -33,6 +33,7 @@ final class HelpRepository
         'tenant.products.create' => 'shop/products',
         'tenant.products.edit' => 'shop/products',
         'tenant.reports' => 'shop/reports',
+        'tenant.verification' => 'shop/verification',
 
         'central.shops' => 'operator/shops',
         'central.audit' => 'operator/impersonation',

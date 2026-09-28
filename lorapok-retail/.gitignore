@@ -32,3 +32,8 @@ frankenphp-worker.php
 
 # PHPStan result cache (persisted by CI, never committed)
 .phpstan-cache
+
+# Per-tenant storage. FilesystemTenancyBootstrapper creates one of these per
+# shop at runtime, and the test suite creates one per provisioned tenant —
+# which is a few hundred directories of upload temp files after a full run.
+storage/tenant*/

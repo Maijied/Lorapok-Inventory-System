@@ -34,6 +34,12 @@
             'can' => Permission::VIEW_REPORTS,
             'icon' => '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M4 16V9m4 7V4m4 12v-5m4 5V7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
         ],
+        [
+            'route' => 'tenant.verification',
+            'label' => 'Verification',
+            'can' => Permission::MANAGE_SETTINGS,
+            'icon' => '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 3 4 5.5v4.2c0 3.1 2.4 5.9 6 7.3 3.6-1.4 6-4.2 6-7.3V5.5L10 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m7.5 10 1.8 1.8L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        ],
     ];
 @endphp
 
