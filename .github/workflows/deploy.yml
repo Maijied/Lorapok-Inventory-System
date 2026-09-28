@@ -34,13 +34,14 @@ jobs:
       - id: check
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
-          if [ -n "$RAILWAY_TOKEN" ]; then
+          if [ -n "$RAILWAY_TOKEN" ] || [ -n "$RAILWAY_API_TOKEN" ]; then
             echo "can_deploy=true" >> "$GITHUB_OUTPUT"
-            echo "Deployment credentials present."
+            echo "Deployment credentials present. They are verified in the deploy job before anything is touched."
           else
             echo "can_deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::RAILWAY_TOKEN is not set — building the image but not deploying. See docs/deployment.md."
+            echo "::warning::No Railway credentials — building the image but not deploying. See docs/deployment.md."
           fi
 
   build:
@@ -93,6 +94,50 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
+      # Presence was never proof. Until this step existed, a credential the
+      # CLI rejects was discovered by the *migrate* step — after an image had
+      # been built and pushed, and at the one point in the pipeline that
+      # reaches production data.
+      #
+      # The CLI reads two secrets and they are not interchangeable:
+      #
+      #   RAILWAY_TOKEN      a project token, from Project -> Settings ->
+      #                      Tokens. Scoped to one project and environment,
+      #                      which is what a deploy wants.
+      #   RAILWAY_API_TOKEN  an account or team token, from Account Settings
+      #                      -> Tokens. Broader, and needs the project linked
+      #                      before `--service` can resolve.
+      #
+      # An account token placed in RAILWAY_TOKEN is rejected with exactly
+      # "Invalid RAILWAY_TOKEN", which is how this first went red.
+      - name: Verify the credentials before touching production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+        run: |
+          if railway status >/dev/null 2>&1; then
+            echo "Railway accepted the credentials."
+            exit 0
+          fi
+
+          echo "::error::Railway rejected the credentials. Nothing was deployed and production was not touched."
+          echo "--- what the CLI said ---"
+          railway status 2>&1 | sed 's/^/  /' || true
+          cat <<'GUIDANCE'
+
+          Three things make this fail, in order of how often:
+
+            1. An account token was stored in RAILWAY_TOKEN. Move it to
+               RAILWAY_API_TOKEN, or replace it with a project token.
+            2. The token is valid but the project has no service named 'app'.
+               Rename the service, or change --service in this workflow.
+            3. The token was revoked or belongs to another workspace.
+
+          To stop deploying entirely for now, delete both secrets: with
+          neither set the image still builds and this job skips cleanly.
+          GUIDANCE
+          exit 1
+
       # Central migrations only. Tenant databases are migrated by a queued job
       # so that a deploy does not block on however many shops exist — at fifty
       # shops a synchronous migration would hold the release for minutes.
@@ -100,16 +145,19 @@ jobs:
         if: ${{ ! inputs.skip_migrations }}
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: railway run --service app -- php artisan migrate --force
 
       - name: Release
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: railway redeploy --service app --yes
 
       - name: Queue tenant migrations
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: railway run --service app -- php artisan tenants:migrate-queued
 
   smoke:

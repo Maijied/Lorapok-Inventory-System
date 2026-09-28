@@ -28,7 +28,8 @@ Repository → Settings → Secrets and variables → Actions.
 
 | Name | Where it comes from |
 |---|---|
-| `RAILWAY_TOKEN` | Railway → Account Settings → Tokens. **This one alone decides whether the deploy job runs at all.** |
+| `RAILWAY_TOKEN` | Railway → **your project** → Settings → Tokens. A *project* token, scoped to one project and environment. |
+| `RAILWAY_API_TOKEN` | Railway → **Account** Settings → Tokens. Only if you would rather use an account or team token; set one or the other, not both. |
 | `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens. Scope it to *Zone → DNS → Edit* on `lorapok.tech` only. |
 | `CLOUDFLARE_ZONE_ID` | Cloudflare dashboard, on the zone overview page. Not secret, but kept alongside the token. |
 
@@ -60,6 +61,18 @@ the fact.
 ## First deploy
 
 1. Set `RAILWAY_TOKEN`. Everything else can follow.
+
+   The two token kinds are **not interchangeable**, and the CLI's error when
+   they are swapped — `Invalid RAILWAY_TOKEN` — does not say so. A token from
+   *Account Settings* stored in `RAILWAY_TOKEN` fails exactly that way. Put an
+   account token in `RAILWAY_API_TOKEN` and a project token in `RAILWAY_TOKEN`.
+
+   The project must contain a service named **`app`**; that name appears as
+   `--service app` throughout the workflow. Rename either side, but not one
+   without the other.
+
+   The deploy job verifies the credential before it runs a migration, so a
+   wrong token costs a red build and nothing else.
 2. Push to `main`, or run the **Deploy** workflow manually.
 3. The workflow builds the image, runs central migrations, releases, then
    queues tenant migrations.
