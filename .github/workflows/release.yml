@@ -213,7 +213,11 @@ jobs:
           git config user.name 'lorapok-ci'
           git config user.email 'ci@lorapok.tech'
           git add lorapok-retail/resources/releases.json
-          # [skip ci] so committing the manifest does not trigger another run.
+          # Deliberately NOT [skip ci]. This commit changes a file the app
+          # reads at request time, and skipping meant main went untested
+          # with it: v0.1.0's manifest broke the download page's empty-state
+          # test and nothing noticed until the next unrelated PR ran.
+          # One CI run per release is a cheap price for main staying honest.
           git diff --staged --quiet \
-            || git commit -m "chore: release manifest for ${{ needs.preflight.outputs.tag }} [skip ci]"
+            || git commit -m "chore: release manifest for ${{ needs.preflight.outputs.tag }}"
           git push origin HEAD:main || echo "::warning::Could not push the release manifest; the live API still answers."
