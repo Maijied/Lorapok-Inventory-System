@@ -66,5 +66,6 @@
     @else
         <main id="main-content">{{ $slot }}</main>
     @endif
+    <x-ui.help-drawer />
 </body>
 </html>

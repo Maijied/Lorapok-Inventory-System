@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Central\KycDocumentController;
 use App\Http\Controllers\Central\LogoutController;
+use App\Http\Controllers\Marketing\DocsController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\PageController;
 use App\Http\Controllers\Marketing\RobotsController;
@@ -49,6 +50,14 @@ foreach ($domains as $index => $domain) {
         $name(Route::get('/', [PageController::class, 'home']), 'marketing.home');
         $name(Route::get('/features', [PageController::class, 'features']), 'marketing.features');
         $name(Route::get('/pricing', [PageController::class, 'pricing']), 'marketing.pricing');
+        $name(Route::get('/docs', [DocsController::class, 'index']), 'marketing.docs');
+        $name(
+            Route::get('/docs/{section}/{page}', [DocsController::class, 'show'])
+                ->whereIn('section', ['shop', 'operator'])
+                ->where('page', '[a-z0-9-]+'),
+            'marketing.docs.show',
+        );
+
         $name(Route::get('/legal/privacy', [PageController::class, 'privacy']), 'marketing.privacy');
         $name(Route::get('/legal/terms', [PageController::class, 'terms']), 'marketing.terms');
 
