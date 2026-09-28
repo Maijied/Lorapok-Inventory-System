@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Tenant\IconController;
 use App\Http\Controllers\Tenant\LogoutController;
 use App\Http\Controllers\Tenant\ManifestController;
+use App\Http\Middleware\BlockImpersonatedWrites;
 use App\Http\Middleware\BlockSuspendedShops;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
@@ -27,6 +28,10 @@ Route::middleware([
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
     BlockSuspendedShops::class,
+    // Applied to the whole group rather than to a list of write routes: a
+    // route added later is covered without anyone remembering, whereas a list
+    // is correct only until it is forgotten.
+    BlockImpersonatedWrites::class,
 ])->group(function () {
 
     // The manifest and icon are public: a browser fetches the manifest

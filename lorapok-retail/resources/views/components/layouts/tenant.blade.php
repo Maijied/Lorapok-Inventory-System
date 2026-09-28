@@ -60,6 +60,29 @@
         Offline — you can look things up, but sales cannot be completed.
     </div>
 
+    @php
+        $impersonation = app(App\Domain\Impersonation\ImpersonationService::class);
+    @endphp
+
+    @if ($impersonation->active())
+        {{-- Permanent and unmissable, for the whole session. An operator
+             acting inside somebody else's business without the shop being
+             able to see it is the thing this entire mechanism exists to
+             prevent. Rendered above the shell so it cannot be scrolled past. --}}
+        <div role="status"
+             class="sticky top-0 z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-[var(--r-attention)] bg-[var(--r-attention)] px-4 py-2 text-center text-sm font-medium text-black">
+            <span>
+                Lorapok support is signed in to your shop
+                ({{ $impersonation->canWrite() ? 'can make changes' : 'read-only' }}).
+            </span>
+            <span class="opacity-80">Reason: {{ $impersonation->context()['reason'] ?? 'not given' }}</span>
+            <form method="POST" action="{{ route('tenant.logout') }}">
+                @csrf
+                <button type="submit" class="underline underline-offset-2">End session</button>
+            </form>
+        </div>
+    @endif
+
     @if ($user)
         <x-app-shell
             :brand-name="tenant('name') ?? config('app.name')"

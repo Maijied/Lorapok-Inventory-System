@@ -60,6 +60,18 @@ needs it — so the two can drift. If a package behaves oddly, re-run the two
 commands above before suspecting the package: the container's copy is the one
 that actually runs.
 
+**On a fresh clone the app container starts before the volume has anything in
+it**, fails to find `vendor/autoload.php`, and supervisor gives up after a few
+retries. The container then reports `Up` while serving nothing, which is a
+confusing way to fail. Installing does not revive it — restart it afterwards:
+
+```
+./vendor/bin/sail up -d
+./vendor/bin/sail composer install
+./vendor/bin/sail npm ci
+docker compose restart laravel.test
+```
+
 ### Provisioning loads a schema dump, not ten migrations
 
 `database/schema/tenant-schema.sql` is loaded when a shop's database is
