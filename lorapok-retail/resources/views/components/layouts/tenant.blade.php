@@ -104,5 +104,6 @@
             {{ $slot }}
         </main>
     @endif
+    <x-ui.help-drawer />
 </body>
 </html>
