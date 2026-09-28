@@ -40,6 +40,12 @@
             'can' => Permission::MANAGE_SETTINGS,
             'icon' => '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 3 4 5.5v4.2c0 3.1 2.4 5.9 6 7.3 3.6-1.4 6-4.2 6-7.3V5.5L10 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m7.5 10 1.8 1.8L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         ],
+        [
+            'route' => 'tenant.branding',
+            'label' => 'Your logo',
+            'can' => Permission::MANAGE_SETTINGS,
+            'icon' => '<svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><circle cx="7.5" cy="8" r="1.3" stroke="currentColor" stroke-width="1.4"/><path d="m3.5 14 3.8-3.4a1.4 1.4 0 0 1 1.9 0L13 14.5m1-2.6a1.3 1.3 0 0 1 1.8 0l.7.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        ],
     ];
 @endphp
 
