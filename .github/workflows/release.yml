@@ -1,0 +1,203 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to rebuild and attach artifacts to'
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  # Never abandon a half-uploaded release to start a newer one.
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # Android signing needs a keystore the repository owner generates and holds.
+  # Resolved once here and passed down, because secrets cannot be referenced
+  # in a job-level `if`. Without it the release still happens — it just ships
+  # without the Android build, rather than failing outright.
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      can_sign_android: ${{ steps.check.outputs.can_sign_android }}
+    steps:
+      - id: resolve
+        run: echo "tag=${{ github.event.inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - id: check
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "can_sign_android=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "can_sign_android=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is not set — releasing without the Android build. See docs/releasing.md."
+          fi
+
+  # Everything that needs no secret at all. Runs on every release.
+  bundles:
+    name: Brand pack and self-host bundle
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-node-app
+
+      - name: Regenerate brand assets from source
+        working-directory: lorapok-retail
+        run: npm run brand
+
+      - name: Package the brand pack
+        run: |
+          mkdir -p dist
+          cd lorapok-retail
+          zip -rq "../dist/lorapok-brand-${{ needs.preflight.outputs.tag }}.zip" \
+            resources/brand \
+            public/favicon.ico public/favicon-16x16.png public/favicon-32x32.png \
+            public/apple-touch-icon.png public/android-chrome-192x192.png \
+            public/android-chrome-512x512.png public/og-image.png public/brand
+
+      - name: Package the self-host bundle
+        run: |
+          mkdir -p staging
+          cp lorapok-retail/compose.yaml staging/
+          cp lorapok-retail/.env.example staging/
+          cp docs/self-hosting.md staging/README.md 2>/dev/null \
+            || cp lorapok-retail/resources/docs/operator/self-hosting.md staging/README.md
+          tar -czf "dist/lorapok-self-host-${{ needs.preflight.outputs.tag }}.tar.gz" -C staging .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bundles
+          path: dist/*
+          if-no-files-found: error
+
+  android:
+    name: Android
+    needs: preflight
+    if: needs.preflight.outputs.can_sign_android == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: npm install -g @bubblewrap/cli@latest
+
+      # Written to the runner's temp directory, which is destroyed with the
+      # runner. Never into the workspace, where a later step could archive it.
+      - name: Restore the signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+
+      - name: Build the signed APK and AAB
+        working-directory: android
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          bubblewrap updateConfig --jdkPath "$JAVA_HOME" --androidSdkPath "$ANDROID_HOME"
+          bubblewrap build --skipPwaValidation
+
+      # A mismatch here is invisible at runtime except as a stray URL bar,
+      # which is the hardest kind of bug to attribute after the fact.
+      - name: Verify the fingerprint matches what the site publishes
+        env:
+          EXPECTED: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          if [ -z "$EXPECTED" ]; then
+            echo "::error::ANDROID_CERT_SHA256 is not set, so assetlinks.json cannot match this build."
+            exit 1
+          fi
+          ACTUAL=$(keytool -list -v \
+            -keystore "$RUNNER_TEMP/upload.jks" \
+            -alias "${{ secrets.ANDROID_KEY_ALIAS }}" \
+            -storepass "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" \
+            | awk '/SHA256:/ {print $2; exit}')
+          echo "$EXPECTED" | tr ',' '\n' | grep -qiF "$ACTUAL" || {
+            echo "::error::Keystore fingerprint $ACTUAL is not in ANDROID_CERT_SHA256"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            android/app-release-signed.apk
+            android/app-release-bundle.aab
+          if-no-files-found: error
+
+  publish:
+    name: Publish the release
+    needs: [preflight, bundles]
+    # Runs even when Android was skipped or failed: shipping the other three
+    # artifacts beats shipping nothing because one platform is unavailable.
+    if: always() && needs.bundles.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Name the Android artifacts and checksum everything
+        run: |
+          TAG="${{ needs.preflight.outputs.tag }}"
+          cd dist
+          [ -f app-release-signed.apk ] && mv app-release-signed.apk "lorapok-retail-$TAG.apk" || true
+          [ -f app-release-bundle.aab ] && mv app-release-bundle.aab "lorapok-retail-$TAG.aab" || true
+          # The Android build is sideloaded rather than from the Play Store,
+          # so a checksum is the only way anyone can verify what they ran.
+          sha256sum * > SHA256SUMS.txt
+
+      # Creates the release if absent and updates it if present, so re-running
+      # on a tag is safe — which matters because Android is the job most
+      # likely to need a retry.
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.preflight.outputs.tag }}
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: dist/*
+
+      # The download page reads the live API first and this file when the API
+      # is unreachable. Committed so it is present in a fresh checkout.
+      - name: Refresh the offline release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ needs.preflight.outputs.tag }}" \
+            --json tagName,publishedAt,url,assets \
+            --jq '{tag:.tagName, published_at:.publishedAt, notes_url:.url,
+                   assets:[.assets[]|{name:.name, url:.url, size:.size}]}' \
+            > lorapok-retail/resources/releases.json
+          git config user.name 'lorapok-ci'
+          git config user.email 'ci@lorapok.tech'
+          git add lorapok-retail/resources/releases.json
+          # [skip ci] so committing the manifest does not trigger another run.
+          git diff --staged --quiet \
+            || git commit -m "chore: release manifest for ${{ needs.preflight.outputs.tag }} [skip ci]"
+          git push origin HEAD:main || echo "::warning::Could not push the release manifest; the live API still answers."

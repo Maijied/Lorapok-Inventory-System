@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Marketing;
 
+use App\Domain\Releases\ReleaseCatalog;
 use App\Models\Plan;
 use App\Support\Seo;
 use Illuminate\Contracts\View\View;
@@ -61,6 +62,21 @@ final class PageController
                     .'your own database and unlimited sales. Pay by bKash, Nagad or bank transfer.',
                 path: '/pricing',
                 schema: [$this->organisation()],
+            ),
+        ]);
+    }
+
+    public function download(ReleaseCatalog $catalog): View
+    {
+        return view('marketing.download', [
+            'catalog' => $catalog,
+            'latest' => $catalog->latest(),
+            'platforms' => $catalog->byPlatform(),
+            'seo' => new Seo(
+                title: 'Download',
+                description: 'Lorapok Retail for Android, Windows, macOS and Linux — or run '
+                    .'the container image on your own hardware. The web app installs without any of it.',
+                path: '/download',
             ),
         ]);
     }

@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AssetLinksController;
 use App\Http\Controllers\Central\KycDocumentController;
 use App\Http\Controllers\Central\LogoutController;
+use App\Http\Controllers\Marketing\CentralManifestController;
 use App\Http\Controllers\Marketing\DocsController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\PageController;
@@ -50,6 +52,17 @@ foreach ($domains as $index => $domain) {
         $name(Route::get('/', [PageController::class, 'home']), 'marketing.home');
         $name(Route::get('/features', [PageController::class, 'features']), 'marketing.features');
         $name(Route::get('/pricing', [PageController::class, 'pricing']), 'marketing.pricing');
+        $name(Route::get('/download', [PageController::class, 'download']), 'marketing.download');
+
+        // Bubblewrap reads this to build the Android app, and a Trusted Web
+        // Activity binds to exactly one origin — which has to be the apex.
+        // Binding to a shop's subdomain would mean an APK per shop, each
+        // needing its own Play listing and review.
+        $name(
+            Route::get('/manifest.webmanifest', CentralManifestController::class),
+            'central.manifest',
+        );
+
         $name(Route::get('/docs', [DocsController::class, 'index']), 'marketing.docs');
         $name(
             Route::get('/docs/{section}/{page}', [DocsController::class, 'show'])
@@ -132,3 +145,20 @@ foreach ($domains as $index => $domain) {
 |
 */
 Route::get('/robots.txt', RobotsController::class)->name('robots');
+
+/*
+|--------------------------------------------------------------------------
+| Digital Asset Links
+|--------------------------------------------------------------------------
+|
+| Outside the central-domain loop so it answers on shop subdomains too. Chrome
+| fetches it before running an origin as an installed app rather than in a
+| browser tab, and it asks before anyone has signed in.
+|
+| Deliberately NOT behind BlockSuspendedShops: a suspended shop that returns
+| 403 here leaves Chrome caching a failed verification, so staff keep seeing a
+| URL bar after the shop is restored. The manifest is 403'd for a suspended
+| shop; this must not be.
+|
+*/
+Route::get('/.well-known/assetlinks.json', AssetLinksController::class)->name('assetlinks');

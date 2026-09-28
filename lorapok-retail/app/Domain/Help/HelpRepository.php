@@ -48,6 +48,11 @@ final class HelpRepository
         'central.login',
         'central.logout',
         'central.kyc.document',
+
+        // Machine endpoints. A browser or an Android build reads these; no
+        // person ever opens one, so there is nothing to explain.
+        'central.manifest',
+        'assetlinks',
     ];
 
     /** @return array<string, string> */
