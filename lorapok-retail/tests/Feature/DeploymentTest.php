@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Central\ShopProvisioner;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Queue;
 use Stancl\Tenancy\Jobs\MigrateDatabase;
 use Symfony\Component\Yaml\Yaml;
@@ -101,13 +102,28 @@ it('can cache its routes, which the production image requires', function () {
     //
     // That meant the production image could not be built at all, and nothing
     // before the first deploy would have shown it.
-    $exit = Artisan::call('route:cache');
+    // bootstrap/cache/routes-v7.php is one path shared by every parallel
+    // worker, so writing the real one made this test a landmine: another
+    // worker booting inside the window between `route:cache` and
+    // `route:clear` requires a file that is about to be deleted, and dies
+    // with "Failed to open stream" in whatever test it happened to be running.
+    //
+    // Laravel resolves the path from APP_ROUTES_CACHE, so pointing it at a
+    // per-worker file keeps the assertion and removes the shared state.
+    $token = (string) (ParallelTesting::token() ?: getmypid());
+    $path = storage_path("framework/testing/routes-{$token}.php");
+
+    @mkdir(dirname($path), 0777, true);
+    $_ENV['APP_ROUTES_CACHE'] = $_SERVER['APP_ROUTES_CACHE'] = $path;
 
     try {
-        expect($exit)->toBe(0, Artisan::output());
+        $exit = Artisan::call('route:cache');
+
+        expect($exit)->toBe(0, Artisan::output())
+            ->and(is_file($path))->toBeTrue('route:cache reported success but wrote nothing');
     } finally {
-        // Never leave a cached route table behind for the next test.
-        Artisan::call('route:clear');
+        @unlink($path);
+        unset($_ENV['APP_ROUTES_CACHE'], $_SERVER['APP_ROUTES_CACHE']);
     }
 });
 
