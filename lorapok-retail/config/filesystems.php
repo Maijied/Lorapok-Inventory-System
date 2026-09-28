@@ -30,6 +30,24 @@ return [
 
     'disks' => [
 
+        /*
+         * KYC documents: trade licences, NID scans, owner photographs.
+         *
+         * A separate disk rather than a folder on 'local', so the distinction
+         * is structural. Nothing here is ever served directly — reaching a
+         * file requires a signed URL issued to an authorised operator, and
+         * every issue is written to the audit log.
+         *
+         * `throw` is deliberate: a silent false from a failed write would let
+         * a verification record claim a document it does not have.
+         */
+        'kyc' => [
+            'driver' => 'local',
+            'root' => storage_path('app/kyc'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

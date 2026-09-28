@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Central\KycDocumentController;
 use App\Http\Controllers\Central\LogoutController;
 use App\Http\Controllers\Marketing\LeadController;
 use App\Http\Controllers\Marketing\PageController;
@@ -90,6 +91,21 @@ foreach ($domains as $index => $domain) {
             $name(
                 Route::livewire('/admin/audit', 'central.audit'),
                 'central.audit',
+            );
+
+            $name(
+                Route::livewire('/admin/verifications', 'central.verifications'),
+                'central.verifications',
+            );
+
+            // Signed AND behind the operator guard: the signature expires, and
+            // a leaked link is still useless to anyone not signed in. Either
+            // alone would be weaker than both.
+            $name(
+                Route::get('/admin/kyc/{verification}/{kind}', KycDocumentController::class)
+                    ->middleware('signed')
+                    ->whereIn('kind', ['licence', 'identifier_front', 'identifier_back', 'owner_photo']),
+                'central.kyc.document',
             );
         });
     });
