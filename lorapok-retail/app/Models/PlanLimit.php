@@ -19,6 +19,12 @@ class PlanLimit extends Model
 {
     protected $guarded = [];
 
+    /** Central, always — see ShopVerification for why this is pinned. */
+    public function getConnectionName(): ?string
+    {
+        return config('tenancy.database.central_connection');
+    }
+
     protected function casts(): array
     {
         return ['value' => 'integer'];

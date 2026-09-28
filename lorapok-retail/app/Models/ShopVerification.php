@@ -26,6 +26,21 @@ class ShopVerification extends Model
 {
     protected $guarded = [];
 
+    /**
+     * Always the central database.
+     *
+     * Without this the model follows the default connection, which tenancy
+     * swaps to `tenant` for the duration of a shop's request — so the
+     * operator panel worked and the shop's own form looked for
+     * `shop_verifications` inside that shop's database. Verification is about
+     * the business we contract with, not anything inside their till, so it
+     * lives centrally and is pinned there.
+     */
+    public function getConnectionName(): ?string
+    {
+        return config('tenancy.database.central_connection');
+    }
+
     /** @var array<string, string> */
     protected $attributes = ['status' => 'unverified'];
 

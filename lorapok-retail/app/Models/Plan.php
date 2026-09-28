@@ -32,6 +32,12 @@ class Plan extends Model
 
     protected $guarded = [];
 
+    /** Central, always — see ShopVerification for why this is pinned. */
+    public function getConnectionName(): ?string
+    {
+        return config('tenancy.database.central_connection');
+    }
+
     /** @var array<string, bool|int|string> */
     protected $attributes = [
         'currency' => 'BDT',

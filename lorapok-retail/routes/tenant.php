@@ -58,6 +58,12 @@ Route::middleware([
         Route::livewire('/pos', 'tenant.pos')->name('tenant.pos');
         Route::livewire('/reports', 'tenant.reports')->name('tenant.reports');
 
+        // The shop's own legal identity. Phase 16 built the domain and the
+        // operator review queue; without this a shop's details could only be
+        // entered on its behalf.
+        Route::livewire('/settings/verification', 'tenant.settings.verification')
+            ->name('tenant.verification');
+
         Route::livewire('/products', 'tenant.catalog.products')->name('tenant.products');
         Route::livewire('/products/create', 'tenant.catalog.product-form')->name('tenant.products.create');
         Route::livewire('/products/{product}/edit', 'tenant.catalog.product-form')->name('tenant.products.edit');

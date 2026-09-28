@@ -110,3 +110,64 @@ it('keeps Money arithmetic exact', function () {
         ->and(Money::parse('0.10')->plus(Money::parse('0.20'))->toDecimal())
         ->toBe('0.30');
 });
+
+it('never imports a global class into a Livewire component', function () {
+    // `use DomainException;` is a non-compound import: pointless, because the
+    // class is already global, and PHP warns about it — which Livewire's
+    // compiled component class escalates into a fatal ErrorException.
+    //
+    // The operator verification screen shipped with exactly this and passed
+    // CI, because no test rendered it. It would have failed the first time
+    // somebody opened the page.
+    $globals = ['DomainException', 'Exception', 'Throwable', 'RuntimeException',
+        'InvalidArgumentException', 'LogicException', 'Closure'];
+
+    $offenders = [];
+
+    foreach (glob(resource_path('views/**/*.blade.php'), GLOB_BRACE) ?: [] as $path) {
+        // Only single-file Livewire components compile to a class.
+        if (! str_contains((string) file_get_contents($path), 'extends Component')) {
+            continue;
+        }
+
+        foreach ($globals as $class) {
+            if (preg_match('/^use '.$class.';$/m', (string) file_get_contents($path)) === 1) {
+                $offenders[] = basename($path).": use {$class};";
+            }
+        }
+    }
+
+    expect($offenders)->toBe([], "Remove these — the class is already global:\n".implode("\n", $offenders));
+});
+
+it('pins every central model to the central connection', function () {
+    // A central model without this follows the default connection, which
+    // tenancy swaps to `tenant` for the duration of a shop request. The
+    // operator panel then works and the same model read from inside a shop
+    // looks for its table in that shop's database.
+    //
+    // ShopVerification shipped without it: the review queue worked and the
+    // shop's own form could not load.
+    $central = ['ShopVerification', 'Subscription', 'SubscriptionInvoice', 'Plan', 'PlanLimit',
+        'ContactMessage', 'ShopApplication', 'ImpersonationToken', 'PaymentAttempt'];
+
+    $unpinned = [];
+
+    foreach ($central as $name) {
+        $path = app_path("Models/{$name}.php");
+
+        if (! is_file($path)) {
+            continue;
+        }
+
+        if (! str_contains((string) file_get_contents($path), 'getConnectionName')) {
+            $unpinned[] = $name;
+        }
+    }
+
+    expect($unpinned)->toBe(
+        [],
+        'These central models follow the default connection, so reading them inside a '
+        ."tenant request looks in the wrong database:\n".implode("\n", $unpinned)
+    );
+});
